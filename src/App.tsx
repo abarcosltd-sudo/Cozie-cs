@@ -1,6 +1,6 @@
 import React, { useEffect, useState, type JSX } from "react";
 
-const API_URL = "https://cozie-ntlzuv990-abarcos-projects.vercel.app/api/home";
+const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
 type ApiData = any;
 
