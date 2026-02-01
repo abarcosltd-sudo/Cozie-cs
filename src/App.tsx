@@ -7,7 +7,7 @@ import Signup from "../Pages/signup";
 import Verification from "../Pages/verification";
 import Preference from "../Pages/Preference";
 
-const API_URL = "https://cozie-ntlzuv990-abarcos-projects.vercel.app/api/home";
+const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
 type ApiData = any;
 
@@ -156,7 +156,7 @@ export default function App() {
 //   },
 // };
 
-// // Add keyframes for spinner animation via a small global style injection
-// const styleEl = document.createElement("style");
-// styleEl.innerHTML = `@keyframes spin { to { transform: rotate(360deg); } }`;
-// document.head.appendChild(styleEl);
+// Add keyframes for spinner animation via a small global style injection
+const styleEl = document.createElement("style");
+styleEl.innerHTML = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(styleEl);
