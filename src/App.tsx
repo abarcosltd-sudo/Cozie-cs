@@ -6,6 +6,8 @@ import Login from "../Pages/login";
 import Signup from "../Pages/signup";
 import Verification from "../Pages/verification";
 import Preference from "../Pages/Preference";
+import ProfileSetup from "../Pages/ProfileSetup";
+import ConnectMusic from "../Pages/ConnectMusic";
 
 const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
@@ -89,6 +91,8 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/verification" element={<Verification />} />
         <Route path="/preference" element={<Preference />} />
+        <Route path="/profilesetup" element={<ProfileSetup />} />
+        <Route path="/connectmusic" element={<ConnectMusic />} />
       </Routes>
     </BrowserRouter>
   );

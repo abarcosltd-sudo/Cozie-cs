@@ -153,7 +153,7 @@ export default function Signup() {
               <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
             </svg>
           </div>
-          <h1 className="app-name">COZIE</h1>
+          <h1 className="app-name">COOZIE</h1>
           <p className="app-tagline">Share your music vibe with friends</p>
           <p className="page-title">Create your account</p>
         </div>
@@ -294,18 +294,18 @@ export default function Signup() {
         </div>
 
         <div className="terms-section">
-          By continuing, you agree to Cozie's 
+          By continuing, you agree to Coozie's 
           <a href="/terms"> Terms of Service</a> 
           {' '}and 
           <a href="/privacy"> Privacy Policy</a>
         </div>
 
-        {/* <div className="progress-indicator">
+        <div className="progress-indicator">
           <div className="progress-dot active"></div>
           <div className="progress-dot"></div>
           <div className="progress-dot"></div>
           <div className="progress-dot"></div>
-        </div> */}
+        </div>
       </div>
     </div>
   );
