@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './login.css';
+import { Link } from 'react-router-dom';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -205,8 +206,8 @@ export default function Login() {
         </div>
 
         <div className="signup-section">
-          Don't have an account? 
-          <a href="/signup" className="signup-link">Sign Up</a>
+          Don't have an account?{' '}
+          <Link to="/signup" className="signup-link">Sign Up</Link>
         </div>
 
         <div className="terms-section">
