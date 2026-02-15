@@ -7,14 +7,61 @@ export default function Login() {
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
     
-    // Add your login logic here
-    console.log('Login attempted with:', { email, password });
-    
-    // Example: Redirect to dashboard after successful login
-    // window.location.href = '/dashboard';
-    
-    alert('Login functionality to be implemented');
+    try {
+      // Create user details object
+      const userDetails = {
+        email: email.trim(),
+        password: password
+      };
+
+      // Log the data being sent (for debugging)
+      console.log('Sending login request with:', userDetails);
+
+      // Send login request to your backend
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userDetails),
+      });
+
+      // Parse the JSON response
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Successful login
+      console.log('Login successful:', data);
+      
+      // Store user data in localStorage or context if needed
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // You might want to set up authentication token
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Show success message (optional)
+      alert('Login successful! Redirecting...');
+      
+      // Redirect to dashboard or home page
+      window.location.href = '/dashboard';
+      
+    } catch (err) {
+      // Handle errors
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(errorMessage);
+      console.error('Login error:', err);
+      alert(errorMessage); // You might want to show this in a more user-friendly way
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, isLastInput: boolean) => {
@@ -22,6 +69,21 @@ export default function Login() {
       e.preventDefault();
       const nextInput = (e.currentTarget.nextElementSibling as HTMLInputElement);
       nextInput?.focus();
+    }
+  };
+
+  // Function to handle login with different providers (optional)
+  const handleSocialLogin = async (provider: string) => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Redirect to OAuth provider
+      window.location.href = `/api/auth/${provider}`;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `${provider} login failed`;
+      setError(errorMessage);
+      setIsLoading(false);
     }
   };
 
@@ -38,6 +100,12 @@ export default function Login() {
           <p className="app-tagline">Share your music vibe with friends</p>
         </div>
 
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
         <form className="login-form" onSubmit={handleLogin}>
           <div className="form-group">
             <input 
@@ -49,6 +117,7 @@ export default function Login() {
               onKeyPress={(e) => handleKeyPress(e, false)}
               required
               autoComplete="email"
+              disabled={isLoading}
             />
           </div>
 
@@ -62,11 +131,50 @@ export default function Login() {
               onKeyPress={(e) => handleKeyPress(e, true)}
               required
               autoComplete="current-password"
+              disabled={isLoading}
             />
           </div>
 
-          <button type="submit" className="login-button">Log In</button>
+          <div className="forgot-password">
+            <a href="/forgot-password">Forgot Password?</a>
+          </div>
+
+          <button 
+            type="submit" 
+            className={`login-button ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </button>
         </form>
+
+         {/* Optional: Social login buttons */}
+        <div className="social-login">
+          <p className="social-login-text">Or login with</p>
+          <div className="social-buttons">
+            <button 
+              onClick={() => handleSocialLogin('google')}
+              className="social-button google"
+              disabled={isLoading}
+            >
+              Google
+            </button>
+            <button 
+              onClick={() => handleSocialLogin('spotify')}
+              className="social-button spotify"
+              disabled={isLoading}
+            >
+              Spotify
+            </button>
+            <button 
+              onClick={() => handleSocialLogin('apple')}
+              className="social-button apple"
+              disabled={isLoading}
+            >
+              Apple
+            </button>
+          </div>
+        </div>
 
         <div className="signup-section">
           Don't have an account? 
