@@ -12,32 +12,32 @@ export default function Login() {
     setIsLoading(true);
     setError('');
     
-    try {
-      // Create user details object
-      const userDetails = {
-        email: email.trim(),
-        password: password
-      };
+    // Create user details object
+    const userDetails = {
+      email: email.trim(),
+      password: password
+    };
 
-      // Log the data being sent (for debugging)
-      console.log('Sending login request with:', userDetails);
+    // Log the data being sent (for debugging)
+    console.log('Sending login request with:', userDetails);
 
-      // Send login request to your backend
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userDetails),
-      });
-
-      // Parse the JSON response
-      const data = await response.json();
-
+    // Send login request to your backend
+    fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userDetails),
+    })
+    .then(response => {
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        return response.json().then(data => {
+          throw new Error(data.message || 'Login failed');
+        });
       }
-
+      return response.json();
+    })
+    .then(data => {
       // Successful login
       console.log('Login successful:', data);
       
@@ -54,18 +54,20 @@ export default function Login() {
       
       // Redirect to dashboard or home page
       window.location.href = '/dashboard';
-      
-    } catch (err) {
+    })
+    .catch(err => {
       // Handle errors
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
       console.error('Login error:', err);
-      alert(errorMessage); // You might want to show this in a more user-friendly way
-    } finally {
+      alert(errorMessage);
+    })
+    .finally(() => {
       setIsLoading(false);
-    }
+    });
   };
 
+  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, isLastInput: boolean) => {
     if (e.key === 'Enter' && !isLastInput) {
       e.preventDefault();
