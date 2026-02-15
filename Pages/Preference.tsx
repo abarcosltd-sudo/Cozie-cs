@@ -62,7 +62,7 @@ export default function Preference() {
     // Simulate API call
     setTimeout(() => {
       sessionStorage.setItem('musicPreferences', JSON.stringify(preferences));
-      navigate('/profile-setup');
+      navigate('/profilesetup');
     }, 1500);
   };
 
