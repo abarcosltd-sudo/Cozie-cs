@@ -22,7 +22,7 @@ export default function Login() {
     console.log('Sending login request with:', userDetails);
 
     // Send login request to your backend
-    fetch('/api/users/login', {
+    fetch('https://cozie-kohl.vercel.app/api/users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
