@@ -153,27 +153,50 @@ export default function Login() {
         </form>
 
          {/* Optional: Social login buttons */}
-        <div className="social-login">
-          <p className="social-login-text">Or login with</p>
-          <div className="social-buttons">
+        <div className="social-login" style={{marginTop: '20px', textAlign: 'center'}}>
+          <p style={{color: '#666', marginBottom: '10px'}}>Or login with</p>
+          <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
             <button 
               onClick={() => handleSocialLogin('google')}
-              className="social-button google"
               disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
             >
               Google
             </button>
             <button 
               onClick={() => handleSocialLogin('spotify')}
-              className="social-button spotify"
               disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: '#1DB954',
+                color: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
             >
               Spotify
             </button>
             <button 
               onClick={() => handleSocialLogin('apple')}
-              className="social-button apple"
               disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: '#000',
+                color: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
             >
               Apple
             </button>
