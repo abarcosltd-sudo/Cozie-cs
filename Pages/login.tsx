@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import './login.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +56,7 @@ export default function Login() {
       alert('Login successful! Redirecting...');
       
       // Redirect to dashboard or home page
-      window.location.href = '/dashboard';
+      navigate('/connectMusic');
     })
     .catch(err => {
       // Handle errors
