@@ -290,7 +290,7 @@ export default function Signup() {
 
         <div className="login-section">
           Already have an account? 
-          <a href="/login" className="login-link">Log In</a>
+          <Link to="/login" className="login-link">Login</Link>
         </div>
 
         <div className="terms-section">
