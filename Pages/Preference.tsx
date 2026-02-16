@@ -69,7 +69,7 @@ export default function Preference() {
   const skipPreferences = () => {
     if (confirm('Are you sure you want to skip? We can personalize your experience better with your preferences.')) {
       sessionStorage.setItem('musicPreferences', JSON.stringify({ genres: [], skipped: true }));
-      navigate('/profile-setup');
+      navigate('/profilesetup');
     }
   };
 
