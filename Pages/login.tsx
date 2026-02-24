@@ -1,27 +1,96 @@
 import { useState } from 'react';
 import './login.css';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
     
-    // Add your login logic here
-    console.log('Login attempted with:', { email, password });
-    
-    // Example: Redirect to dashboard after successful login
-    // window.location.href = '/dashboard';
-    
-    alert('Login functionality to be implemented');
+    // Create user details object
+    const userDetails = {
+      email: email.trim(),
+      password: password
+    };
+
+    // Log the data being sent (for debugging)
+    console.log('Sending login request with:', userDetails);
+
+    // Send login request to your backend
+    const URL = 'https://cozie-kohl.vercel.app/api/users/login'
+    fetch(URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userDetails),
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.message || 'Login failed');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Successful login
+      console.log('Login successful:', data);
+      
+      // Store user data in localStorage or context if needed
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // You might want to set up authentication token
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Show success message (optional)
+      alert('Login successful! Redirecting...');
+      
+      // Redirect to dashboard or home page
+      navigate('/connectmusic');
+    })
+    .catch(err => {
+      // Handle errors
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(errorMessage);
+      console.error('Login error:', err);
+      alert(errorMessage);
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
   };
 
+  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, isLastInput: boolean) => {
     if (e.key === 'Enter' && !isLastInput) {
       e.preventDefault();
       const nextInput = (e.currentTarget.nextElementSibling as HTMLInputElement);
       nextInput?.focus();
+    }
+  };
+
+  // Function to handle login with different providers (optional)
+  const handleSocialLogin = async (provider: string) => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Redirect to OAuth provider
+      window.location.href = `/api/auth/${provider}`;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `${provider} login failed`;
+      setError(errorMessage);
+      setIsLoading(false);
     }
   };
 
@@ -38,6 +107,12 @@ export default function Login() {
           <p className="app-tagline">Share your music vibe with friends</p>
         </div>
 
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
         <form className="login-form" onSubmit={handleLogin}>
           <div className="form-group">
             <input 
@@ -49,6 +124,7 @@ export default function Login() {
               onKeyPress={(e) => handleKeyPress(e, false)}
               required
               autoComplete="email"
+              disabled={isLoading}
             />
           </div>
 
@@ -62,15 +138,77 @@ export default function Login() {
               onKeyPress={(e) => handleKeyPress(e, true)}
               required
               autoComplete="current-password"
+              disabled={isLoading}
             />
           </div>
 
-          <button type="submit" className="login-button">Log In</button>
+          <div className="forgot-password">
+            <a href="/forgot-password">Forgot Password?</a>
+          </div>
+
+          <button 
+            type="submit" 
+            className={`login-button ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </button>
         </form>
 
+         {/* Optional: Social login buttons */}
+        <div className="social-login" style={{marginTop: '20px', textAlign: 'center'}}>
+          <p style={{color: '#666', marginBottom: '10px'}}>Or login with</p>
+          <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+            <button 
+              onClick={() => handleSocialLogin('google')}
+              disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
+            >
+              Google
+            </button>
+            <button 
+              onClick={() => handleSocialLogin('spotify')}
+              disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: '#1DB954',
+                color: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
+            >
+              Spotify
+            </button>
+            <button 
+              onClick={() => handleSocialLogin('apple')}
+              disabled={isLoading}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '20px',
+                background: '#000',
+                color: 'white',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1
+              }}
+            >
+              Apple
+            </button>
+          </div>
+        </div>
+
         <div className="signup-section">
-          Don't have an account? 
-          <a href="/signup" className="signup-link">Sign Up</a>
+          Don't have an account?{' '}
+          <Link to="/signup" className="signup-link">Sign Up</Link>
         </div>
 
         <div className="terms-section">

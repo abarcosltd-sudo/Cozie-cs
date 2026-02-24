@@ -62,14 +62,14 @@ export default function Preference() {
     // Simulate API call
     setTimeout(() => {
       sessionStorage.setItem('musicPreferences', JSON.stringify(preferences));
-      navigate('/profile-setup');
+      navigate('/profilesetup');
     }, 1500);
   };
 
   const skipPreferences = () => {
     if (confirm('Are you sure you want to skip? We can personalize your experience better with your preferences.')) {
       sessionStorage.setItem('musicPreferences', JSON.stringify({ genres: [], skipped: true }));
-      navigate('/profile-setup');
+      navigate('/profilesetup');
     }
   };
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './signup.css';
 
 export default function Signup() {
@@ -290,7 +290,7 @@ export default function Signup() {
 
         <div className="login-section">
           Already have an account? 
-          <a href="/login" className="login-link">Log In</a>
+          <Link to="/login" className="login-link">Login</Link>
         </div>
 
         <div className="terms-section">
