@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COZIE - First-Time User Journey Wireframes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: #94a3b8;
+        }
+
+        .journey-nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+
+        .journey-step {
+            padding: 12px 24px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .journey-step:hover,
+        .journey-step.active {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: #a855f7;
+            transform: translateY(-2px);
+        }
+
+        .wireframes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .wireframe-card {
+            background: #1a1d29;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .wireframe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(168, 85, 247, 0.2);
+        }
+
+        .wireframe-header {
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .wireframe-header h3 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .wireframe-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .wireframe-screen {
+            background: #0f1117;
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        .screen-mockup {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d1b3d 100%);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        /* Common wireframe elements */
+        .mock-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .mock-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #a855f7;
+            margin-bottom: 8px;
+        }
+
+        .mock-subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 25px;
+        }
+
+        .mock-input {
+            background: rgba(30, 35, 48, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .mock-button {
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .mock-link {
+            text-align: center;
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 15px;
+        }
+
+        .mock-link span {
+            color: #a855f7;
+        }
+
+        /* Genre selection styles */
+        .genre-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .genre-card {
+            background: rgba(168, 85, 247, 0.1);
+            border: 2px solid rgba(168, 85, 247, 0.3);
+            border-radius: 10px;
+            padding: 20px 10px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .genre-card.selected {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: #a855f7;
+        }
+
+        .genre-emoji {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        /* Profile setup styles */
+        .profile-photo {
+            width: 100px;
+            height: 100px;
+            background: rgba(168, 85, 247, 0.2);
+            border: 3px dashed rgba(168, 85, 247, 0.5);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        /* Friend search styles */
+        .search-bar {
+            background: rgba(30, 35, 48, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .friend-suggestion {
+            background: rgba(30, 35, 48, 0.6);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .friend-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            border-radius: 50%;
+        }
+
+        .friend-info {
+            flex: 1;
+        }
+
+        .friend-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .friend-username {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .follow-btn {
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Main feed styles */
+        .nav-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .nav-item {
+            font-size: 24px;
+            opacity: 0.5;
+        }
+
+        .nav-item.active {
+            opacity: 1;
+        }
+
+        .music-card {
+            background: rgba(30, 35, 48, 0.6);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .music-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
+            border-radius: 50%;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .post-time {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .album-art {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .track-info {
+            margin-bottom: 12px;
+        }
+
+        .track-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .track-artist {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .actions-bar {
+            display: flex;
+            gap: 20px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* Progress indicator */
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 25px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(168, 85, 247, 0.3);
+            border-radius: 50%;
+        }
+
+        .dot.active {
+            background: #a855f7;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 60px 0 30px;
+            text-align: center;
+        }
+
+        .notes-section {
+            background: rgba(168, 85, 247, 0.05);
+            border-left: 4px solid #a855f7;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+
+        .notes-section h4 {
+            color: #a855f7;
+            margin-bottom: 15px;
+        }
+
+        .notes-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .notes-section li {
+            padding: 8px 0;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .notes-section li:before {
+            content: "→";
+            color: #a855f7;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .wireframes-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 COZIE User Journey Wireframes</h1>
+            <p>Complete first-time user experience from sign-up to active engagement</p>
+        </div>
+
+        <div class="journey-nav">
+            <div class="journey-step active">1. Sign Up</div>
+            <div class="journey-step">2. Onboarding</div>
+            <div class="journey-step">3. Main Experience</div>
+        </div>
+
+        <!-- SIGN UP FLOW -->
+        <h2 class="section-title">📝 Sign Up Flow</h2>
+        
+        <div class="wireframes-grid">
+            <!-- Screen 1: Sign Up Form -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 1: Sign Up</h3>
+                    <p>User creates account</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div class="mock-logo">🎵</div>
+                        <div class="mock-title">COZIE</div>
+                        <div class="mock-subtitle">Create your account</div>
+                        
+                        <div class="mock-input">Full Name</div>
+                        <div class="mock-input">Username</div>
+                        <div class="mock-input">Email Address</div>
+                        <div class="mock-input">Password</div>
+                        <div class="mock-input">Confirm Password</div>
+                        
+                        <div class="mock-button">Create Account</div>
+                        
+                        <div class="mock-link">
+                            Already have an account? <span>Log In</span>
+                        </div>
+                        
+                        <div class="progress-dots">
+                            <div class="dot active"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2: Email Verification -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 2: Verify Email</h3>
+                    <p>Email confirmation step</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div style="text-align: center; font-size: 64px; margin-bottom: 20px;">📧</div>
+                        <div class="mock-title">Check Your Email</div>
+                        <div class="mock-subtitle" style="margin-bottom: 30px;">
+                            We've sent a verification link to<br>
+                            <span style="color: #a855f7;">user@example.com</span>
+                        </div>
+                        
+                        <div class="mock-input" style="text-align: center; margin-bottom: 20px;">
+                            Enter 6-digit code
+                        </div>
+                        
+                        <div class="mock-button">Verify Email</div>
+                        
+                        <div class="mock-link" style="margin-top: 30px;">
+                            Didn't receive code? <span>Resend</span>
+                        </div>
+                        
+                        <div class="progress-dots">
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONBOARDING FLOW -->
+        <h2 class="section-title">🎯 Onboarding Flow</h2>
+        
+        <div class="wireframes-grid">
+            <!-- Screen 3: Music Preferences -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 3: Music Preferences</h3>
+                    <p>Select favorite genres</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div class="mock-title" style="font-size: 20px;">What music do you vibe with?</div>
+                        <div class="mock-subtitle">Select at least 3 genres</div>
+                        
+                        <div class="genre-grid">
+                            <div class="genre-card selected">
+                                <div class="genre-emoji">🎸</div>
+                                Rock
+                            </div>
+                            <div class="genre-card selected">
+                                <div class="genre-emoji">🎹</div>
+                                Pop
+                            </div>
+                            <div class="genre-card">
+                                <div class="genre-emoji">🎤</div>
+                                Hip Hop
+                            </div>
+                            <div class="genre-card selected">
+                                <div class="genre-emoji">🎧</div>
+                                Electronic
+                            </div>
+                            <div class="genre-card">
+                                <div class="genre-emoji">🎺</div>
+                                Jazz
+                            </div>
+                            <div class="genre-card">
+                                <div class="genre-emoji">🎻</div>
+                                Classical
+                            </div>
+                            <div class="genre-card">
+                                <div class="genre-emoji">🪕</div>
+                                Country
+                            </div>
+                            <div class="genre-card">
+                                <div class="genre-emoji">🥁</div>
+                                R&B/Soul
+                            </div>
+                        </div>
+                        
+                        <div class="mock-button">Continue</div>
+                        
+                        <div class="progress-dots">
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4: Profile Setup -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 4: Profile Setup</h3>
+                    <p>Add profile photo and bio</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div class="mock-title" style="font-size: 20px;">Set up your profile</div>
+                        <div class="mock-subtitle">Help friends recognize you</div>
+                        
+                        <div class="profile-photo">
+                            + Add Photo
+                        </div>
+                        
+                        <div class="mock-input">Display Name</div>
+                        <div class="mock-input">@username</div>
+                        <div class="mock-input" style="height: 80px; margin-bottom: 20px;">Bio (Optional)</div>
+                        
+                        <div class="mock-button">Continue</div>
+                        <div class="mock-link">
+                            <span>Skip for now</span>
+                        </div>
+                        
+                        <div class="progress-dots">
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5: Connect Streaming -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 5: Connect Music Service</h3>
+                    <p>Link Spotify/Apple Music</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div style="text-align: center; font-size: 64px; margin-bottom: 20px;">🎵</div>
+                        <div class="mock-title" style="font-size: 20px;">Connect your music</div>
+                        <div class="mock-subtitle" style="margin-bottom: 30px;">
+                            Link your streaming service to share<br>what you're listening to
+                        </div>
+                        
+                        <div style="background: #1DB954; border-radius: 10px; padding: 16px; text-align: center; font-weight: 600; margin-bottom: 12px; cursor: pointer;">
+                            Connect Spotify
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #FA243C 0%, #FF6B7A 100%); border-radius: 10px; padding: 16px; text-align: center; font-weight: 600; margin-bottom: 12px; cursor: pointer;">
+                            Connect Apple Music
+                        </div>
+                        
+                        <div style="background: rgba(255, 107, 0, 0.9); border-radius: 10px; padding: 16px; text-align: center; font-weight: 600; margin-bottom: 20px; cursor: pointer;">
+                            Connect SoundCloud
+                        </div>
+                        
+                        <div class="mock-link">
+                            <span>Skip for now</span>
+                        </div>
+                        
+                        <div class="progress-dots">
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                            <div class="dot active"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6: Find Friends -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 6: Find Friends</h3>
+                    <p>Connect with people</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div class="mock-title" style="font-size: 20px;">Find friends to follow</div>
+                        <div class="mock-subtitle">See what they're listening to</div>
+                        
+                        <div class="search-bar">
+                            <span>🔍</span>
+                            <span style="color: #64748b;">Search users...</span>
+                        </div>
+                        
+                        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 12px; font-weight: 600;">SUGGESTED FOR YOU</div>
+                        
+                        <div class="friend-suggestion">
+                            <div class="friend-avatar"></div>
+                            <div class="friend-info">
+                                <div class="friend-name">Sarah Johnson</div>
+                                <div class="friend-username">@sarahj • 847 followers</div>
+                            </div>
+                            <div class="follow-btn">Follow</div>
+                        </div>
+                        
+                        <div class="friend-suggestion">
+                            <div class="friend-avatar" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);"></div>
+                            <div class="friend-info">
+                                <div class="friend-name">Mike Chen</div>
+                                <div class="friend-username">@mikechen • 1.2k followers</div>
+                            </div>
+                            <div class="follow-btn">Follow</div>
+                        </div>
+                        
+                        <div class="friend-suggestion">
+                            <div class="friend-avatar" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);"></div>
+                            <div class="friend-info">
+                                <div class="friend-name">Emma Davis</div>
+                                <div class="friend-username">@emmad • 532 followers</div>
+                            </div>
+                            <div class="follow-btn">Follow</div>
+                        </div>
+                        
+                        <div class="mock-button" style="margin-top: 20px;">Done</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN EXPERIENCE -->
+        <h2 class="section-title">🏠 Main App Experience</h2>
+        
+        <div class="wireframes-grid">
+            <!-- Screen 7: Home Feed -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 7: Home Feed</h3>
+                    <p>See friends' music activity</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div class="mock-title" style="font-size: 24px; text-align: left; margin: 0;">COZIE</div>
+                            <div style="font-size: 20px;">🔔</div>
+                        </div>
+                        
+                        <div class="music-card">
+                            <div class="music-header">
+                                <div class="user-avatar"></div>
+                                <div class="user-details">
+                                    <div class="user-name">Sarah Johnson</div>
+                                    <div class="post-time">2 hours ago</div>
+                                </div>
+                                <div style="font-size: 18px;">⋯</div>
+                            </div>
+                            
+                            <div class="album-art">🎸</div>
+                            
+                            <div class="track-info">
+                                <div class="track-title">Bohemian Rhapsody</div>
+                                <div class="track-artist">Queen</div>
+                            </div>
+                            
+                            <div class="actions-bar">
+                                <div class="action-btn">💜 <span>234</span></div>
+                                <div class="action-btn">💬 <span>12</span></div>
+                                <div class="action-btn">🔁 <span>Share</span></div>
+                                <div class="action-btn">➕</div>
+                            </div>
+                        </div>
+                        
+                        <div class="nav-bar">
+                            <div class="nav-item active">🏠</div>
+                            <div class="nav-item">🔍</div>
+                            <div class="nav-item">➕</div>
+                            <div class="nav-item">💬</div>
+                            <div class="nav-item">👤</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 8: Discover -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 8: Discover</h3>
+                    <p>Explore trending music</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div class="mock-title" style="font-size: 24px; text-align: left;">Discover</div>
+                        
+                        <div class="search-bar" style="margin-top: 15px;">
+                            <span>🔍</span>
+                            <span style="color: #64748b;">Search songs, artists, users...</span>
+                        </div>
+                        
+                        <div style="font-size: 13px; font-weight: 600; margin: 20px 0 12px;">TRENDING NOW</div>
+                        
+                        <div style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 25px;">
+                            <div style="min-width: 120px; height: 120px; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border-radius: 10px;"></div>
+                            <div style="min-width: 120px; height: 120px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); border-radius: 10px;"></div>
+                            <div style="min-width: 120px; height: 120px; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); border-radius: 10px;"></div>
+                        </div>
+                        
+                        <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">TOP CHARTS</div>
+                        
+                        <div style="background: rgba(30, 35, 48, 0.6); border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; gap: 12px; align-items: center;">
+                            <div style="font-size: 16px; font-weight: 700; color: #a855f7; width: 20px;">1</div>
+                            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border-radius: 6px;"></div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 14px; font-weight: 600;">Anti-Hero</div>
+                                <div style="font-size: 12px; color: #64748b;">Taylor Swift</div>
+                            </div>
+                            <div style="font-size: 18px;">▶️</div>
+                        </div>
+                        
+                        <div class="nav-bar">
+                            <div class="nav-item">🏠</div>
+                            <div class="nav-item active">🔍</div>
+                            <div class="nav-item">➕</div>
+                            <div class="nav-item">💬</div>
+                            <div class="nav-item">👤</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 9: Share Music -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 9: Share Music</h3>
+                    <p>Post what you're listening to</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <div style="font-size: 20px;">✕</div>
+                            <div style="font-size: 18px; font-weight: 600;">Share Music</div>
+                            <div style="background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%); border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 600;">Post</div>
+                        </div>
+                        
+                        <div class="search-bar">
+                            <span>🔍</span>
+                            <span style="color: #64748b;">Search for a song...</span>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <div style="background: rgba(168, 85, 247, 0.1); border: 2px solid #a855f7; border-radius: 10px; padding: 15px; display: flex; gap: 12px;">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border-radius: 8px;"></div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">Blinding Lights</div>
+                                    <div style="font-size: 13px; color: #94a3b8;">The Weeknd</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mock-input" style="height: 100px; margin-bottom: 20px;">
+                            Add a caption... (Optional)
+                        </div>
+                        
+                        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">SHARE TO</div>
+                        
+                        <div style="display: flex; justify-content: space-around; padding: 15px; background: rgba(30, 35, 48, 0.6); border-radius: 10px;">
+                            <div style="text-align: center;">
+                                <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%); border-radius: 50%; margin: 0 auto 8px;"></div>
+                                <div style="font-size: 11px;">Feed</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="width: 50px; height: 50px; background: rgba(168, 85, 247, 0.2); border-radius: 50%; margin: 0 auto 8px;"></div>
+                                <div style="font-size: 11px;">Story</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="width: 50px; height: 50px; background: rgba(168, 85, 247, 0.2); border-radius: 50%; margin: 0 auto 8px;"></div>
+                                <div style="font-size: 11px;">Groups</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 10: Profile -->
+            <div class="wireframe-card">
+                <div class="wireframe-header">
+                    <h3>Screen 10: User Profile</h3>
+                    <p>View personal music activity</p>
+                </div>
+                <div class="wireframe-screen">
+                    <div class="screen-mockup">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="width: 90px; height: 90px; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border-radius: 50%; margin: 0 auto 15px;"></div>
+                            <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Alex Thompson</div>
+                            <div style="font-size: 14px; color: #64748b; margin-bottom: 15px;">@alexthompson</div>
+                            
+                            <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 15px;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 700;">1,234</div>
+                                    <div style="font-size: 12px; color: #64748b;">Followers</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 700;">567</div>
+                                    <div style="font-size: 12px; color: #64748b;">Following</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 700;">89</div>
+                                    <div style="font-size: 12px; color: #64748b;">Posts</div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%); border-radius: 8px; padding: 10px 30px; display: inline-block; font-size: 14px; font-weight: 600;">Edit Profile</div>
+                        </div>
+                        
+                        <div style="display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 15px;">
+                            <div style="flex: 1; text-align: center; padding: 12px; border-bottom: 2px solid #a855f7; font-weight: 600; font-size: 14px;">Posts</div>
+                            <div style="flex: 1; text-align: center; padding: 12px; color: #64748b; font-size: 14px;">Playlists</div>
+                            <div style="flex: 1; text-align: center; padding: 12px; color: #64748b; font-size: 14px;">Liked</div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border-radius: 4px;"></div>
+                            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); border-radius: 4px;"></div>
+                            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); border-radius: 4px;"></div>
+                        </div>
+                        
+                        <div class="nav-bar">
+                            <div class="nav-item">🏠</div>
+                            <div class="nav-item">🔍</div>
+                            <div class="nav-item">➕</div>
+                            <div class="nav-item">💬</div>
+                            <div class="nav-item active">👤</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DESIGN NOTES -->
+        <div class="notes-section">
+            <h4>🎨 Design Recommendations & UX Notes</h4>
+            <ul>
+                <li><strong>Consistent Purple Theme:</strong> Maintain the purple gradient (#a855f7 to #8b5cf6) throughout the app as the primary brand color for buttons, accents, and highlights</li>
+                <li><strong>Dark Mode First:</strong> The dark background (#1a1d29 to #2d1b3d gradient) creates an immersive music experience and reduces eye strain</li>
+                <li><strong>Progressive Onboarding:</strong> Use progress dots to show users where they are in the sign-up/onboarding journey (4-6 steps max)</li>
+                <li><strong>Social Integration:</strong> Connect music streaming services early to enable core sharing functionality</li>
+                <li><strong>Music-First Feed:</strong> Album art should be prominent and visual, similar to Instagram but focused on music content</li>
+                <li><strong>Quick Actions:</strong> Include heart/like, comment, share, and add-to-playlist actions on every music post</li>
+                <li><strong>Discovery Features:</strong> Trending charts, genre-based exploration, and personalized recommendations based on preferences</li>
+                <li><strong>Bottom Navigation:</strong> Use 5 primary tabs: Home (feed), Discover (search/explore), Share (post music), Messages, Profile</li>
+                <li><strong>Engagement Mechanics:</strong> Show follower counts, post engagement metrics, and listening statistics to encourage activity</li>
+                <li><strong>Optional Features:</strong> Allow users to skip non-essential steps (profile photo, bio, finding friends) to reduce friction</li>
+                <li><strong>Real-time Updates:</strong> Show "2 hours ago", "now playing" status to create sense of live music sharing</li>
+                <li><strong>Playlist Collaboration:</strong> Enable friends to build playlists together (collaborative feature for future)</li>
+            </ul>
+        </div>
+
+        <div class="notes-section">
+            <h4>🔄 User Flow Summary</h4>
+            <ul>
+                <li><strong>Step 1:</strong> User creates account with email/password</li>
+                <li><strong>Step 2:</strong> Email verification via 6-digit code</li>
+                <li><strong>Step 3:</strong> Select music genre preferences (minimum 3)</li>
+                <li><strong>Step 4:</strong> Set up profile (photo, display name, bio)</li>
+                <li><strong>Step 5:</strong> Connect streaming service (Spotify/Apple Music/SoundCloud)</li>
+                <li><strong>Step 6:</strong> Find and follow friends</li>
+                <li><strong>Step 7:</strong> Arrive at home feed with tutorial/welcome message</li>
+                <li><strong>Step 8:</strong> User can browse, discover, share music, and engage with friends</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 60px 0 40px;">
+            <div style="font-size: 32px; margin-bottom: 15px;">✨</div>
+            <p style="color: #94a3b8; font-size: 16px;">
+                These wireframes provide a complete blueprint for building COZIE.<br>
+                Ready to bring your music-sharing platform to life! 🎵
+            </p>
+        </div>
+    </div>
+</body>
+</html>

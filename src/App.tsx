@@ -8,6 +8,9 @@ import Verification from "../Pages/verification";
 import Preference from "../Pages/Preference";
 import ProfileSetup from "../Pages/ProfileSetup";
 import ConnectMusic from "../Pages/ConnectMusic";
+import HomeFeed from "../Pages/HomeFeed";
+import Discover from "../Pages/Discover";
+import UserProfile from "../Pages/UserProfile";
 
 const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
@@ -41,9 +44,12 @@ function Home() {
   return (
     <div className="page">
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <h1 className="title">Cozie — Server Status</h1>
-          <Link to="/splash" className="nav-link">Go to Splash</Link>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/splash" className="nav-link">Splash</Link>
+            <Link to="/home-feed" className="nav-link">Home Feed</Link>
+          </div>
         </div>
 
         {loading && (
@@ -87,6 +93,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/splash" element={<Splash />} />
+        <Route path="/home-feed" element={<HomeFeed />} />
+        <Route path="/discover" element={<Discover />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verification" element={<Verification />} />
