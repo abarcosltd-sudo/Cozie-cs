@@ -93,7 +93,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/splash" element={<Splash />} />
-        <Route path="/home-feed" element={<HomeFeed />} />
+        <Route path="/homefeed" element={<HomeFeed />} />
         <Route path="/discover" element={<Discover />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/login" element={<Login />} />
