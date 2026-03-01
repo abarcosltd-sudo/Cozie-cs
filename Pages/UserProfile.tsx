@@ -86,13 +86,13 @@ export default function UserProfile() {
     console.log('Navigating to:', page);
     switch (page) {
       case 'home':
-        window.location.href = '/home-feed';
+        window.location.href = '/homefeed';
         break;
       case 'search':
         window.location.href = '/discover';
         break;
       case 'add':
-        window.location.href = '/share-music';
+        window.location.href = '/sharemusic';
         break;
       case 'messages':
         window.location.href = '/messages';
