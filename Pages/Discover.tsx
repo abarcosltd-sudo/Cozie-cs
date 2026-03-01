@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import './Discover.css';
 
 interface TrendingCard {
@@ -133,13 +133,13 @@ export default function Discover() {
     console.log('Navigating to:', page);
     switch (page) {
       case 'home':
-        window.location.href = '/home-feed';
+        window.location.href = '/homefeed';
         break;
       case 'search':
         // Already on discover
         break;
       case 'add':
-        window.location.href = '/share-music';
+        window.location.href = '/sharemusic';
         break;
       case 'messages':
         window.location.href = '/messages';
