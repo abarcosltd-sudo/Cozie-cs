@@ -81,7 +81,7 @@ export default function Signup() {
     setShowError(false);
     setErrorMessage('');
 
-    const { fullName, username, email, password, confirmPassword } = formData;
+    const { fullname, username, email, password, confirmPassword } = formData;
 
     if (fullName.length < 2) {
       showErrorMessage('Full name must be at least 2 characters long');
