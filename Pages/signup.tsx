@@ -5,7 +5,7 @@ import './signup.css';
 export default function Signup() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: '',
+    fullname: '',
     username: '',
     email: '',
     password: '',
@@ -114,7 +114,7 @@ export default function Signup() {
     }
 
     const signupData = {
-      fullName,
+      fullname,
       username,
       email,
       password
@@ -137,7 +137,7 @@ export default function Signup() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        fullName,
+        fullname,
         username,
         email,
         password
@@ -202,9 +202,9 @@ export default function Signup() {
             <input 
               type="text" 
               className="form-input" 
-              id="fullName"
+              id="fullname"
               placeholder="Full Name"
-              value={formData.fullName}
+              value={formData.fullname}
               onChange={handleInputChange}
               onKeyPress={(e) => handleKeyPress(e, false)}
               required
