@@ -8,8 +8,8 @@ interface GridPost {
 
 export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('posts');
-  const [displayName, setDisplayName] = useState('Alex Thompson');
-  const [username, setUsername] = useState('@alexthompson');
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [emptyStateMessage, setEmptyStateMessage] = useState('No content yet');
   const [emptyStateSubtext, setEmptyStateSubtext] = useState('Start sharing your music!');
@@ -26,19 +26,34 @@ export default function UserProfile() {
     { id: 9, gradient: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)' },
   ];
 
-  useEffect(() => {
-    // Try to load saved profile data
-    const savedProfile = sessionStorage.getItem('userProfile');
-    if (savedProfile) {
+ useEffect(() => {
+    const fetchProfile = async () => {
       try {
-        const profile = JSON.parse(savedProfile);
-        if (profile.displayName) setDisplayName(profile.displayName);
-        if (profile.username) setUsername('@' + profile.username);
-      } catch (e) {
-        console.error('Error loading profile:', e);
+        const token = localStorage.getItem('token'); // JWT from login
+        if (!token) return;
+
+        const response = await axios.get('/api/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const user = response.data.user;
+
+        if (user.fullname) setDisplayName(user.fullname);
+        if (user.username) setUsername('@' + user.username);
+
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        setShowEmptyState(true);
+        setEmptyStateMessage('Failed to load profile');
+        setEmptyStateSubtext('Please refresh or log in again');
       }
-    }
+    };
+
+    fetchProfile();
   }, []);
+
 
   const handleSwitchTab = (tabName: string) => {
     setActiveTab(tabName);
