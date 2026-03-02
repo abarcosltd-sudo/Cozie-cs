@@ -124,11 +124,46 @@ export default function Signup() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    //setTimeout(() => {
       // Success - redirect to email verification
       // For now, redirect to login
-      navigate('/login');
-    }, 1500);
+      //navigate('/login');
+    //}, 1500);
+
+    try {
+    const response = await fetch('https://cozie-kohl.vercel.app/api/users/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fullName,
+        username,
+        email,
+        password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Signup failed');
+    }
+
+    // Save JWT token (if backend returns one)
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+
+    // Redirect to dashboard or login
+    navigate('/login');
+
+    } catch (error: any) {
+      showErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+
   };
 
   const handleSocialSignup = (provider: string) => {
