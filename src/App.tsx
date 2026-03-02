@@ -27,7 +27,7 @@ function Home() {
     setData(null);
     try {
       const token = localStorage.getItem("token"); // If your API requires auth
-      const API_URL = 'https://cozie-kohl.vercel.app/api/home'
+
       const res = await fetch(API_URL, {
         method: "GET",
         headers: {
