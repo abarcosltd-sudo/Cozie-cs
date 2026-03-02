@@ -48,7 +48,7 @@ function Home() {
           <h1 className="title">Cozie — Server Status</h1>
           <div style={{ display: "flex", gap: "10px" }}>
             <Link to="/splash" className="nav-link">Splash</Link>
-            <Link to="/home-feed" className="nav-link">Home Feed</Link>
+            <Link to="/homefeed" className="nav-link">Home Feed</Link>
           </div>
         </div>
 
