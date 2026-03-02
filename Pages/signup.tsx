@@ -75,7 +75,7 @@ export default function Signup() {
     setShowError(true);
   };
 
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setShowError(false);
