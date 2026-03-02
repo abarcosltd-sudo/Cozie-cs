@@ -32,7 +32,8 @@ export default function UserProfile() {
         const token = localStorage.getItem('token'); // JWT from login
         if (!token) return;
 
-        const response = await axios.get('/api/profile', {
+        const URL = 'https://cozie-kohl.vercel.app/api/users/profile'
+        const response = await axios.get(URL, {
           headers: {
             Authorization: `Bearer ${token}`
           }
