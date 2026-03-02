@@ -26,11 +26,26 @@ function Home() {
     setError(null);
     setData(null);
     try {
-      const res = await fetch(API_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Server responded ${res.status} ${res.statusText}`);
+      const token = localStorage.getItem("token"); // If your API requires auth
+      const API_URL = 'https://cozie-kohl.vercel.app/api/home'
+      const res = await fetch(API_URL, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` }),
+        },
+        cache: "no-store",
+      });
+    
+      if (!res.ok) {
+        throw new Error(`Server responded ${res.status} ${res.statusText}`);
+      }
+    
       const json = await res.json();
       setData(json);
+    
     } catch (err: any) {
+      console.error("Fetch error:", err);
       setError(err?.message || "Unknown error");
     } finally {
       setLoading(false);
