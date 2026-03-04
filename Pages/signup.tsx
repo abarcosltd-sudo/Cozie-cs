@@ -156,7 +156,7 @@ export default function Signup() {
     }
 
     // Redirect to dashboard or login
-    navigate('/login');
+    navigate('/verification');
 
     } catch (error: any) {
       showErrorMessage(error.message);
