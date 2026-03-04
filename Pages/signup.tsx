@@ -151,12 +151,12 @@ export default function Signup() {
     }
 
     // Save JWT token (if backend returns one)
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-    }
+    // if (data.token) {
+    //   localStorage.setItem('token', data.token);
+    // }
 
     // Redirect to dashboard or login
-    navigate('/verification');
+    navigate('/verification', { state: { email } });
 
     } catch (error: any) {
       showErrorMessage(error.message);
