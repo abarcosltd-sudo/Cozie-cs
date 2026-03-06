@@ -111,50 +111,68 @@ export default function Verification() {
 
   const handleVerification = async () => {
     const code = codeValues.join('');
-
+  
     setShowError(false);
     setErrorMessage('');
-
+  
     if (code.length !== 6) {
       setErrorMessage('Please enter all 6 digits');
       setShowError(true);
       return;
     }
-
+  
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      // For demo: accept any 6-digit code
-      if (code.length === 6) {
-        // Success
-        setSuccessMessage('✓ Verification successful! Redirecting...');
-        setShowSuccess(true);
-
-        // Add success animation to inputs
-        inputsRef.current.forEach((input) => {
-          if (input) {
-            input.style.borderColor = '#22c55e';
-            input.style.background = 'rgba(34, 197, 94, 0.1)';
-          }
-        });
-
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          navigate('/onboarding');
-        }, 2000);
-      } else {
-        setIsLoading(false);
-        setErrorMessage('Invalid verification code. Please try again.');
-        setShowError(true);
-
-        // Clear inputs and refocus
-        setCodeValues(['', '', '', '', '', '']);
-        inputsRef.current[0]?.focus();
+  
+    try {
+      // Get email from navigation state (passed from signup)
+      const email = location.state?.email;
+      if (!email) {
+        throw new Error('Email not found. Please go back and sign up again.');
       }
-    }, 1500);
+  
+      const response = await fetch('https://cozie-kohl.vercel.app/api/users/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Verification failed');
+      }
+  
+      // Success – mark inputs green, show success message
+      setSuccessMessage('✓ Verification successful! Redirecting...');
+      setShowSuccess(true);
+  
+      inputsRef.current.forEach((input) => {
+        if (input) {
+          input.style.borderColor = '#22c55e';
+          input.style.background = 'rgba(34, 197, 94, 0.1)';
+        }
+      });
+  
+      // Optionally store token if backend returns one
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+  
+      // Redirect to onboarding after 2 seconds
+      setTimeout(() => {
+        navigate('/preferences');
+      }, 2000);
+  
+    } catch (error: any) {
+      setIsLoading(false);
+      setErrorMessage(error.message || 'Invalid verification code. Please try again.');
+      setShowError(true);
+  
+      // Clear inputs and refocus
+      setCodeValues(['', '', '', '', '', '']);
+      inputsRef.current[0]?.focus();
+    }
   };
-
   const handleResendCode = () => {
     if (!canResend) return;
 
