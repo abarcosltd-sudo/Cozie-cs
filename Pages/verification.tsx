@@ -19,7 +19,7 @@ export default function Verification() {
 
   useEffect(() => {
     // Get email from session storage or URL params
-    const email = sessionStorage.getItem('userEmail') || 'user@example.com';
+    const email = location.state?.email;
     setUserEmail(email);
 
     // Focus first input
