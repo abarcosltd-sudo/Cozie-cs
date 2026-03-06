@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './verification.css';
 
 export default function Verification() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [codeValues, setCodeValues] = useState(['', '', '', '', '', '']);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
