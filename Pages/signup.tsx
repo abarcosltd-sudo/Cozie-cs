@@ -156,7 +156,17 @@ export default function Signup() {
     // }
 
     // Redirect to dashboard or login
-    navigate('/verification', { state: { email } });
+    if (response.ok) {
+      const data = await response.json();
+      // Store email in state to pass to verification page
+      navigate('/verification', { state: { email: formData.email } });
+      // Optionally show a message if emailSent is false
+      if (!data.emailSent) {
+        // Show a warning that email didn't send
+      }
+    } else {
+      // Handle error
+    }
 
     } catch (error: any) {
       showErrorMessage(error.message);
