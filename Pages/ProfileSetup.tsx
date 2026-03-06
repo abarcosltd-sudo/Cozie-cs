@@ -182,7 +182,7 @@ export default function ProfileSetup() {
     e.preventDefault();
     if (confirm('Skip profile setup? You can always complete it later in settings.')) {
       // Mark as skipped and go to next step
-      navigate('/connect-streaming');
+      navigate('/connectmusic');
     }
   };
 
