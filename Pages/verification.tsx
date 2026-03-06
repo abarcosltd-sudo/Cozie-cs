@@ -161,7 +161,7 @@ export default function Verification() {
   
       // Redirect to onboarding after 2 seconds
       setTimeout(() => {
-        navigate('/preference');
+        navigate('/preference', { state: { email } });
       }, 2000);
   
     } catch (error: any) {
