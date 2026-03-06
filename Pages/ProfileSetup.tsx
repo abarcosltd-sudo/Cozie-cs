@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface ProfileData {
-  displayName: string;
-  username: string;
-  bio: string | null;
-  photo: string | null;
-}
+// interface ProfileData {
+//   displayName: string;
+//   username: string;
+//   bio: string | null;
+//   photo: string | null;
+// }
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
