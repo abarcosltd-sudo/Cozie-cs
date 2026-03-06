@@ -53,7 +53,7 @@ export default function ConnectMusic() {
 
       // Redirect to next step after delay
       setTimeout(() => {
-        navigate('/preference');
+        navigate('/homefeed');
       }, 2000);
 
       console.log(`Connected to ${serviceName}...`);
