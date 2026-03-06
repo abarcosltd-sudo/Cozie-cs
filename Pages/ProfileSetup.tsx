@@ -157,17 +157,17 @@ export default function ProfileSetup() {
         formData.append('profilePhoto', photoFile);
       }
 
-      const response = await fetch('https://cozie-kohl.vercel.app/api/users/profile', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      // const response = await fetch('https://cozie-kohl.vercel.app/api/users/profile', {
+      //   method: 'PUT',
+      //   headers: { Authorization: `Bearer ${token}` },
+      //   body: formData,
+      // });
 
-      const data = await response.json();
+      // const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile');
-      }
+      // if (!response.ok) {
+      //   throw new Error(data.message || 'Failed to update profile');
+      // }
 
       // Success – proceed to next onboarding step (Connect Streaming)
       navigate('/connect-streaming');
