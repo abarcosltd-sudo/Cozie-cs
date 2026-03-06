@@ -170,7 +170,7 @@ export default function ProfileSetup() {
       // }
 
       // Success – proceed to next onboarding step (Connect Streaming)
-      navigate('/connect-streaming');
+      navigate('/connectmusic');
     } catch (error: any) {
       showError(error.message);
     } finally {
