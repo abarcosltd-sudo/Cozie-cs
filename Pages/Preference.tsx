@@ -77,18 +77,18 @@ export default function Preference() {
         throw new Error(data.message || 'Failed to save preferences');
       }
   
-      // Success: optionally store in sessionStorage as backup
+      // Optional: store in sessionStorage as backup
       sessionStorage.setItem('musicPreferences', JSON.stringify({
         genres: Array.from(selectedGenres),
         timestamp: new Date().toISOString()
       }));
   
-      // Navigate to next step
+      // Navigate to next step (profile setup)
       navigate('/profilesetup');
     } catch (error: any) {
       console.error('Save preferences error:', error);
-      // Show error to user (you can use your existing error display mechanism)
-      alert(error.message); // or set an error state
+      // Display error to user (adjust based on your UI)
+      alert(error.message); // Replace with your preferred error display
     } finally {
       setIsLoading(false);
     }
