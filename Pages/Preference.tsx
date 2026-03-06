@@ -49,23 +49,51 @@ export default function Preference() {
     if (selectedGenres.size < MIN_SELECTIONS) {
       return;
     }
-
+  
     setIsLoading(true);
-
-    const preferences = {
-      genres: Array.from(selectedGenres),
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('Saving preferences:', preferences);
-
-    // Simulate API call
-    setTimeout(() => {
-      sessionStorage.setItem('musicPreferences', JSON.stringify(preferences));
+  
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found. Please log in again.');
+      }
+  
+      const preferences = {
+        genres: Array.from(selectedGenres),
+      };
+  
+      const response = await fetch('https://cozie-kohl.vercel.app/api/users/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(preferences),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to save preferences');
+      }
+  
+      // Success: optionally store in sessionStorage as backup
+      sessionStorage.setItem('musicPreferences', JSON.stringify({
+        genres: Array.from(selectedGenres),
+        timestamp: new Date().toISOString()
+      }));
+  
+      // Navigate to next step
       navigate('/profilesetup');
-    }, 1500);
+    } catch (error: any) {
+      console.error('Save preferences error:', error);
+      // Show error to user (you can use your existing error display mechanism)
+      alert(error.message); // or set an error state
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  
   const skipPreferences = () => {
     if (confirm('Are you sure you want to skip? We can personalize your experience better with your preferences.')) {
       sessionStorage.setItem('musicPreferences', JSON.stringify({ genres: [], skipped: true }));
