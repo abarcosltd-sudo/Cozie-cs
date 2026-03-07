@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './profilesetup.css'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase'; // adjust path as needed
+import './profilesetup.css';
 
 // interface ProfileData {
 //   displayName: string;
@@ -22,6 +24,7 @@ export default function ProfileSetup() {
   const [photoRemoved, setPhotoRemoved] = useState(false);               // user removed existing photo
   const [loading, setLoading] = useState(false);
   const [showRemoveBtn, setShowRemoveBtn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);             // from backend
 
   // Fetch existing user data on mount
   useEffect(() => {
@@ -38,6 +41,7 @@ export default function ProfileSetup() {
         if (!response.ok) throw new Error('Failed to load user data');
         const data = await response.json();
         const user = data.user;
+        setUserId(user.id); // store user ID for storage path
         // Pre‑fill form with existing values
         if (user.displayName) setDisplayName(user.displayName);
         if (user.username) setUsername(user.username);
@@ -115,6 +119,21 @@ export default function ProfileSetup() {
     }
   };
 
+  // Upload photo to Firebase Storage and return download URL
+  const uploadPhoto = async (file: File): Promise<string> => {
+    if (!userId) throw new Error('User ID not available');
+
+    // Create a unique filename: timestamp + original name (sanitized)
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const fileName = `${timestamp}_${safeName}`;
+    const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
+
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  };
+
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -147,28 +166,37 @@ export default function ProfileSetup() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Not authenticated');
 
-      const formData = new FormData();
-      formData.append('displayName', displayNameTrim);
-      formData.append('username', usernameTrim);
-      formData.append('bio', bioTrim || '');
+      // Prepare payload
+      const payload: any = {
+        displayName: displayNameTrim,
+        username: usernameTrim,
+        bio: bioTrim || '',
+      };
 
+      // Handle photo
       if (photoRemoved) {
-        formData.append('removePhoto', 'true');
+        payload.removePhoto = true;
       } else if (photoFile) {
-        formData.append('profilePhoto', photoFile);
+        // Upload the file to Firebase Storage and get URL
+        const photoURL = await uploadPhoto(photoFile);
+        payload.photoURL = photoURL;
       }
 
-      // const response = await fetch('https://cozie-kohl.vercel.app/api/users/profile', {
-      //   method: 'PUT',
-      //   headers: { Authorization: `Bearer ${token}` },
-      //   body: formData,
-      // });
+      // Send JSON request to backend
+      const response = await fetch('https://cozie-kohl.vercel.app/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-      // const data = await response.json();
+      const data = await response.json();
 
-      // if (!response.ok) {
-      //   throw new Error(data.message || 'Failed to update profile');
-      // }
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update profile');
+      }
 
       // Success – proceed to next onboarding step (Connect Streaming)
       navigate('/connectmusic');
