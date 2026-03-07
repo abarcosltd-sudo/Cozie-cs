@@ -1,11 +1,9 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
-// In Vite, environment variables are exposed via import.meta.env
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_APPKEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTHDOMAIN,
