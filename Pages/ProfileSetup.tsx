@@ -121,18 +121,29 @@ export default function ProfileSetup() {
 
   // Upload photo to Firebase Storage and return download URL
   const uploadPhoto = async (file: File): Promise<string> => {
-    if (!userId) throw new Error('User ID not available');
-
-    // Create a unique filename: timestamp + original name (sanitized)
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const fileName = `${timestamp}_${safeName}`;
-    const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
-
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return downloadURL;
-  };
+    const token = localStorage.getItem('token');
+    
+    const res = await fetch('https://cozie-kohl.vercel.app/api/users/generate-upload-url', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    });
+  
+    if (!res.ok) throw new Error('Failed to get upload URL');
+    const { signedUrl, publicUrl } = await res.json();
+  
+    const uploadRes = await fetch(signedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    });
+  
+    if (!uploadRes.ok) throw new Error('Upload failed');
+    return publicUrl;
+};
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
