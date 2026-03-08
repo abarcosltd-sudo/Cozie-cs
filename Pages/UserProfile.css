@@ -62,7 +62,6 @@ html, body {
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c084fc 0%, #ec4899 100%);
   margin: 0 auto 20px;
   cursor: pointer;
   transition: transform 0.3s ease;
