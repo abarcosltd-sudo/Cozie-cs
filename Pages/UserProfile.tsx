@@ -49,11 +49,11 @@ export default function UserProfile() {
       // Set profile photo if exists
       if (user.photoURL) {
         setProfilePhoto(user.photoURL);
-        setShowRemoveBtn(true);
+        //setShowRemoveBtn(true);
       }
       
       // Optional: set bio if your backend returns it
-      if (user.bio) setBio(user.bio);
+      //if (user.bio) setBio(user.bio);
 
     } catch (error) {
       console.error('Error loading profile:', error);
