@@ -43,7 +43,7 @@ export default function UserProfile() {
 
       const user = response.data.user;
 
-      if (user.diplayName) setDisplayName(user.displayName);
+      if (user.displayName) setDisplayName(user.displayName);
       if (user.username) setUsername('@' + user.username);
       
       // Set profile photo if exists
