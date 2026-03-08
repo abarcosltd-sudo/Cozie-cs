@@ -142,14 +142,11 @@ export default function UserProfile() {
 
         {/* Profile Header */}
         <div className="profile-header">
-          <div className="profile-avatar" onClick={handleChangeProfilePhoto}>
-            {profilePhoto ? (
-              <img src={profilePhoto} alt="profile" className="avatar-image" />
-            ) : (
-              // optional placeholder (e.g., initials or default icon)
-              <span>Add Photo</span>
-            )}
-          </div>
+          <div 
+            className="profile-avatar" 
+            onClick={handleChangeProfilePhoto}
+            style={{ backgroundImage: profilePhoto ? `url(${profilePhoto})` : 'none' }}
+          />
           <h1 className="profile-name">{displayName}</h1>
           <p className="profile-username">{username}</p>
 
