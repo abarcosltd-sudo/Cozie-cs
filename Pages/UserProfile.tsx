@@ -10,6 +10,7 @@ interface GridPost {
 export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('posts');
   const [displayName, setDisplayName] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState('');
   const [username, setUsername] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [emptyStateMessage, setEmptyStateMessage] = useState('No content yet');
@@ -28,34 +29,43 @@ export default function UserProfile() {
   ];
 
  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem('token'); // JWT from login
-        if (!token) return;
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token'); // JWT from login
+      if (!token) return;
 
-        const URL = 'https://cozie-kohl.vercel.app/api/users/profile'
-        const response = await axios.get(URL, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+      const URL = 'https://cozie-kohl.vercel.app/api/users/profile';
+      const response = await axios.get(URL, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
-        const user = response.data.user;
+      const user = response.data.user;
 
-        if (user.fullname) setDisplayName(user.fullname);
-        if (user.username) setUsername('@' + user.username);
-
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        setShowEmptyState(true);
-        setEmptyStateMessage('Failed to load profile');
-        setEmptyStateSubtext('Please refresh or log in again');
+      if (user.fullname) setDisplayName(user.fullname);
+      if (user.username) setUsername('@' + user.username);
+      
+      // Set profile photo if exists
+      if (user.photoURL) {
+        setProfilePhoto(user.photoURL);
+        setShowRemoveBtn(true);
       }
-    };
+      
+      // Optional: set bio if your backend returns it
+      if (user.bio) setBio(user.bio);
+
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setShowEmptyState(true);
+      setEmptyStateMessage('Failed to load profile');
+      setEmptyStateSubtext('Please refresh or log in again');
+    }
+  };
 
     fetchProfile();
   }, []);
-
+  
 
   const handleSwitchTab = (tabName: string) => {
     setActiveTab(tabName);
@@ -131,7 +141,7 @@ export default function UserProfile() {
 
         {/* Profile Header */}
         <div className="profile-header">
-          <div className="profile-avatar" onClick={handleChangeProfilePhoto}></div>
+          <div className="profile-avatar" onClick={handleChangeProfilePhoto}>{profilePhoto}</div>
           <h1 className="profile-name">{displayName}</h1>
           <p className="profile-username">{username}</p>
 
