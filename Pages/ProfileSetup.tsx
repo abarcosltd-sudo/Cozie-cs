@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase'; // adjust path as needed
 import './profilesetup.css';
 
 // interface ProfileData {
@@ -24,7 +22,6 @@ export default function ProfileSetup() {
   const [photoRemoved, setPhotoRemoved] = useState(false);               // user removed existing photo
   const [loading, setLoading] = useState(false);
   const [showRemoveBtn, setShowRemoveBtn] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);             // from backend
 
   // Fetch existing user data on mount
   useEffect(() => {
@@ -41,7 +38,6 @@ export default function ProfileSetup() {
         if (!response.ok) throw new Error('Failed to load user data');
         const data = await response.json();
         const user = data.user;
-        setUserId(user.id); // store user ID for storage path
         // Pre‑fill form with existing values
         if (user.displayName) setDisplayName(user.displayName);
         if (user.username) setUsername(user.username);
@@ -119,10 +115,11 @@ export default function ProfileSetup() {
     }
   };
 
-  // Upload photo to Firebase Storage and return download URL
+  // Upload photo to Firebase Storage via signed URL
   const uploadPhoto = async (file: File): Promise<string> => {
     const token = localStorage.getItem('token');
     
+    // 1. Request signed URL from backend
     const res = await fetch('https://cozie-kohl.vercel.app/api/users/generate-upload-url', {
       method: 'POST',
       headers: {
@@ -131,19 +128,27 @@ export default function ProfileSetup() {
       },
       body: JSON.stringify({ fileName: file.name, fileType: file.type }),
     });
-  
-    if (!res.ok) throw new Error('Failed to get upload URL');
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to get upload URL');
+    }
+
     const { signedUrl, publicUrl } = await res.json();
-  
+
+    // 2. Upload file directly to signed URL
     const uploadRes = await fetch(signedUrl, {
       method: 'PUT',
       body: file,
       headers: { 'Content-Type': file.type },
     });
-  
-    if (!uploadRes.ok) throw new Error('Upload failed');
+
+    if (!uploadRes.ok) {
+      throw new Error('Upload failed');
+    }
+
     return publicUrl;
-};
+  };
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +193,7 @@ export default function ProfileSetup() {
       if (photoRemoved) {
         payload.removePhoto = true;
       } else if (photoFile) {
-        // Upload the file to Firebase Storage and get URL
+        // Upload the file to Firebase Storage via signed URL and get public URL
         const photoURL = await uploadPhoto(photoFile);
         payload.photoURL = photoURL;
       }
@@ -221,11 +226,9 @@ export default function ProfileSetup() {
   const skipProfile = (e: React.MouseEvent) => {
     e.preventDefault();
     if (confirm('Skip profile setup? You can always complete it later in settings.')) {
-      // Mark as skipped and go to next step
       navigate('/connectmusic');
     }
   };
-
   return (
     <div className="profilesetup-page">
       <div className="profilesetup-container">
