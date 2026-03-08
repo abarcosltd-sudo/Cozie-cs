@@ -42,7 +42,8 @@ export default function UserProfile() {
       });
 
       const user = response.data.user;
-
+      console.log(user)
+      
       if (user.displayName) setDisplayName(user.displayName);
       if (user.username) setUsername('@' + user.username);
       
