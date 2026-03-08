@@ -144,7 +144,7 @@ export default function UserProfile() {
         <div className="profile-header">
           <div className="profile-avatar" onClick={handleChangeProfilePhoto}>
             {profilePhoto ? (
-              <img src={profilePhoto} alt="Profile" className="avatar-image" />
+              <img src={profilePhoto} alt="Profile" className="avatar-image" style={{ width: 100, height: 100, borderRadius: '50%' }} />
             ) : (
               <span>Add Photo</span> // or a placeholder icon
             )}
