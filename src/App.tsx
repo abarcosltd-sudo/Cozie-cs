@@ -11,6 +11,8 @@ import ConnectMusic from "../Pages/ConnectMusic";
 import HomeFeed from "../Pages/HomeFeed";
 import Discover from "../Pages/Discover";
 import UserProfile from "../Pages/UserProfile";
+import ShareMusic from "../Pages/ShareMusic";
+import AddMusic from "../Pages/AddMusic";
 
 const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
@@ -102,6 +104,8 @@ export default function App() {
         <Route path="/preference" element={<Preference />} />
         <Route path="/profilesetup" element={<ProfileSetup />} />
         <Route path="/connectmusic" element={<ConnectMusic />} />
+        <Route path="/share-music" element={<ShareMusic />} />
+        <Route path="/add-music" element={<AddMusic />} />
       </Routes>
     </BrowserRouter>
   );
