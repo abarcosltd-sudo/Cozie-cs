@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import './UserProfile.css';
 
 interface GridPost {
@@ -8,8 +9,9 @@ interface GridPost {
 
 export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('posts');
-  const [displayName, setDisplayName] = useState('Alex Thompson');
-  const [username, setUsername] = useState('@alexthompson');
+  const [displayName, setDisplayName] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState('');
+  const [username, setUsername] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [emptyStateMessage, setEmptyStateMessage] = useState('No content yet');
   const [emptyStateSubtext, setEmptyStateSubtext] = useState('Start sharing your music!');
@@ -26,19 +28,45 @@ export default function UserProfile() {
     { id: 9, gradient: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)' },
   ];
 
-  useEffect(() => {
-    // Try to load saved profile data
-    const savedProfile = sessionStorage.getItem('userProfile');
-    if (savedProfile) {
-      try {
-        const profile = JSON.parse(savedProfile);
-        if (profile.displayName) setDisplayName(profile.displayName);
-        if (profile.username) setUsername('@' + profile.username);
-      } catch (e) {
-        console.error('Error loading profile:', e);
+ useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token'); // JWT from login
+      if (!token) return;
+
+      const URL = 'https://cozie-kohl.vercel.app/api/users/profile';
+      const response = await axios.get(URL, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const user = response.data.user;
+      console.log(user)
+      
+      if (user.displayName) setDisplayName(user.displayName);
+      if (user.username) setUsername('@' + user.username);
+      
+      // Set profile photo if exists
+      if (user.photoURL) {
+        setProfilePhoto(user.photoURL);
+        //setShowRemoveBtn(true);
       }
+      
+      // Optional: set bio if your backend returns it
+      //if (user.bio) setBio(user.bio);
+
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setShowEmptyState(true);
+      setEmptyStateMessage('Failed to load profile');
+      setEmptyStateSubtext('Please refresh or log in again');
     }
+  };
+
+    fetchProfile();
   }, []);
+  
 
   const handleSwitchTab = (tabName: string) => {
     setActiveTab(tabName);
@@ -86,13 +114,13 @@ export default function UserProfile() {
     console.log('Navigating to:', page);
     switch (page) {
       case 'home':
-        window.location.href = '/home-feed';
+        window.location.href = '/homefeed';
         break;
       case 'search':
         window.location.href = '/discover';
         break;
       case 'add':
-        window.location.href = '/share-music';
+        window.location.href = '/sharemusic';
         break;
       case 'messages':
         window.location.href = '/messages';
@@ -114,7 +142,13 @@ export default function UserProfile() {
 
         {/* Profile Header */}
         <div className="profile-header">
-          <div className="profile-avatar" onClick={handleChangeProfilePhoto}></div>
+          <div className="profile-avatar" onClick={handleChangeProfilePhoto}>
+            {profilePhoto ? (
+              <img src={profilePhoto} alt="Profile" className="avatar-image" style={{ width: 100, height: 100, borderRadius: '50%' }} />
+            ) : (
+              <span>Add Photo</span> // or a placeholder icon
+            )}
+          </div>
           <h1 className="profile-name">{displayName}</h1>
           <p className="profile-username">{username}</p>
 

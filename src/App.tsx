@@ -28,11 +28,26 @@ function Home() {
     setError(null);
     setData(null);
     try {
-      const res = await fetch(API_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Server responded ${res.status} ${res.statusText}`);
+      const token = localStorage.getItem("token"); // If your API requires auth
+
+      const res = await fetch(API_URL, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` }),
+        },
+        cache: "no-store",
+      });
+    
+      if (!res.ok) {
+        throw new Error(`Server responded ${res.status} ${res.statusText}`);
+      }
+    
       const json = await res.json();
       setData(json);
+    
     } catch (err: any) {
+      console.error("Fetch error:", err);
       setError(err?.message || "Unknown error");
     } finally {
       setLoading(false);
@@ -50,7 +65,7 @@ function Home() {
           <h1 className="title">Cozie — Server Status</h1>
           <div style={{ display: "flex", gap: "10px" }}>
             <Link to="/splash" className="nav-link">Splash</Link>
-            <Link to="/home-feed" className="nav-link">Home Feed</Link>
+            <Link to="/homefeed" className="nav-link">Home Feed</Link>
           </div>
         </div>
 
@@ -95,7 +110,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/splash" element={<Splash />} />
-        <Route path="/home-feed" element={<HomeFeed />} />
+        <Route path="/homefeed" element={<HomeFeed />} />
         <Route path="/discover" element={<Discover />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/login" element={<Login />} />

@@ -5,7 +5,7 @@ import './signup.css';
 export default function Signup() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: '',
+    fullname: '',
     username: '',
     email: '',
     password: '',
@@ -75,62 +75,80 @@ export default function Signup() {
     setShowError(true);
   };
 
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     setShowError(false);
     setErrorMessage('');
-
-    const { fullName, username, email, password, confirmPassword } = formData;
-
-    if (fullName.length < 2) {
+  
+    const { fullname, username, email, password, confirmPassword } = formData;
+  
+    // Validation (unchanged)
+    if (fullname.length < 2) {
       showErrorMessage('Full name must be at least 2 characters long');
       return;
     }
-
     if (username.length < 3) {
       showErrorMessage('Username must be at least 3 characters long');
       return;
     }
-
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       showErrorMessage('Username can only contain letters, numbers, and underscores');
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showErrorMessage('Please enter a valid email address');
       return;
     }
-
     if (password.length < 8) {
       showErrorMessage('Password must be at least 8 characters long');
       return;
     }
-
     if (password !== confirmPassword) {
       showErrorMessage('Passwords do not match');
       return;
     }
-
-    const signupData = {
-      fullName,
-      username,
-      email,
-      password
-    };
-
-    console.log('Signup data:', signupData);
-
+  
     setIsLoading(true);
-
-    setTimeout(() => {
-      // Success - redirect to email verification
-      // For now, redirect to login
-      navigate('/login');
-    }, 1500);
+  
+    try {
+      const response = await fetch('https://cozie-kohl.vercel.app/api/users/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullname, username, email, password }),
+      });
+  
+      let data;
+  
+      // If response is not OK, read error body (could be JSON or plain text)
+      if (!response.ok) {
+        const errorText = await response.text(); // read once
+        try {
+          data = JSON.parse(errorText); // attempt to parse as JSON
+        } catch {
+          data = { message: errorText || 'Signup failed' };
+        }
+        throw new Error(data.message || 'Signup failed');
+      }
+  
+      // Response OK – parse JSON (body hasn't been read yet)
+      data = await response.json();
+  
+      // Success – navigate to verification page
+      navigate('/verification', { state: { email } });
+  
+      // Optionally show a warning if email was not sent
+      if (data.emailSent === false) {
+        // You can show a toast or a subtle message
+        console.warn('Verification email could not be sent, but account was created.');
+        // e.g., showToast('Account created, but verification email failed. Please request a new code.', 'warning');
+      }
+    } catch (error: any) {
+      showErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
   const handleSocialSignup = (provider: string) => {
     console.log(`Signing up with ${provider}`);
     alert(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up to be implemented`);
@@ -167,9 +185,9 @@ export default function Signup() {
             <input 
               type="text" 
               className="form-input" 
-              id="fullName"
+              id="fullname"
               placeholder="Full Name"
-              value={formData.fullName}
+              value={formData.fullname}
               onChange={handleInputChange}
               onKeyPress={(e) => handleKeyPress(e, false)}
               required

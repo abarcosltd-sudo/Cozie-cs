@@ -56,7 +56,7 @@ export default function Login() {
       alert('Login successful! Redirecting...');
       
       // Redirect to dashboard or home page
-      navigate('/home-feed');
+      navigate('/homefeed');
     })
     .catch(err => {
       // Handle errors
