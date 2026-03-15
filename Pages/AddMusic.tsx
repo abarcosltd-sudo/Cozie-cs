@@ -300,24 +300,24 @@ export default function AddMusic() {
             fileType: albumArtFile.type,
           }),
         });
-  
+      
         if (!artRes.ok) {
           const error = await artRes.json();
           throw new Error(error.message || 'Failed to get upload URL for album art');
         }
-  
+      
         const { signedUrl: artSignedUrl, publicUrl: artPublicUrl } = await artRes.json();
-  
+      
         const artUploadRes = await fetch(artSignedUrl, {
           method: 'PUT',
-          body: albumArtPreview,
-          headers: { 'Content-Type': albumArtPreview.type },
+          body: albumArtFile,           // use the file object
+          headers: { 'Content-Type': albumArtFile.type }, // .type exists
         });
-  
+      
         if (!artUploadRes.ok) {
           throw new Error('Album art upload failed');
         }
-  
+      
         albumArtPublicUrl = artPublicUrl;
       }
   
