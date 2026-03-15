@@ -352,7 +352,7 @@ export default function AddMusic() {
         tags: formData.tags,
       };
   
-      const metadataRes = await fetch('https://cozie-kohl.vercel.app/api/music', {
+      const metadataRes = await fetch('https://cozie-kohl.vercel.app/api/music/add-music', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
