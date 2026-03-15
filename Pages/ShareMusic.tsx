@@ -131,7 +131,7 @@ export default function ShareMusic() {
       }
 
       // Success – navigate to feed
-      navigate('/home-feed');
+      navigate('/homefeed');
     } catch (error: any) {
       alert(`Error sharing music: ${error.message}`);
     } finally {
