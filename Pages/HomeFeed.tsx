@@ -199,7 +199,7 @@ export default function HomeFeed() {
 
                 <div className="album-art" onClick={() => playMusic(post.id)}>
                   {post.albumArtUrl ? (
-                    <img src={post.albumArtUrl} alt={post.trackTitle} className="album-image" style={{ width: '50%', height: '50%', objectFit: 'cover', borderRadius: '50%' }}/>
+                    <img src={post.albumArtUrl} alt={post.trackTitle} className="album-image" />
                   ) : (
                     <div className="album-icon">{post.albumIcon}</div>
                   )}
