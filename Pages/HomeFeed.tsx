@@ -95,7 +95,7 @@ export default function HomeFeed() {
       <div className="homefeed-wrapper">
         {/* Top Header */}
         <div className="feed-header">
-          <div className="header-logo">COZIE</div>
+          <div className="header-logo">COOZIE</div>
           <div className="notification-icon">🔔</div>
         </div>
 
