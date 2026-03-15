@@ -193,7 +193,11 @@ export default function HomeFeed() {
                 <div className="post-header">
                   <div className="user-info">
                     <div className="user-avatar">
-                      <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', width: '100%', height: '100%', borderRadius: '50%' }}></div>
+                      {post.userAvatarUrl ? (
+                        <img src={post.userAvatarUrl} alt={post.userName} className="avatar-image" />
+                      ) : (
+                        <div className="avatar-placeholder" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }}></div>
+                      )}
                     </div>
                     <div className="user-details">
                       <div className="user-name">{post.userName}</div>
