@@ -40,8 +40,11 @@ export default function AddMusic() {
   const uploadAreaRef = useRef<HTMLDivElement>(null);
 
   // File states
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [albumArtPreview, setAlbumArtPreview] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);      // actual music file
+  const [selectedFilePreview, setSelectedFilePreview] = useState<string>(''); // optional preview for music (if needed)
+
+  const [albumArtFile, setAlbumArtFile] = useState<File | null>(null);      // actual album art file
+  const [albumArtPreview, setAlbumArtPreview] = useState<string>('');       // preview URL (string)
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
   // Form states
@@ -133,29 +136,35 @@ export default function AddMusic() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      handleFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
     }
+  };
+  
+  const handleFile = (file: File) => {
+    setSelectedFile(file);
   };
 
   const handleAlbumArtSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     if (file.size > 5 * 1024 * 1024) {
       alert('Album art must be less than 5MB');
       return;
     }
-
-    setFormData(prev => ({ ...prev, albumArt: file }));
-
+  
+    // Store the file object for upload
+    setAlbumArtFile(file);
+  
+    // Generate preview as a data URL
     const reader = new FileReader();
     reader.onload = (event) => {
       setAlbumArtPreview(event.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
@@ -285,7 +294,7 @@ export default function AddMusic() {
   
       // --- 2. Upload album art if provided ---
       let albumArtPublicUrl = null;
-      if (albumArtPreview) {
+      if (albumArtFile) {
         const artRes = await fetch('https://cozie-kohl.vercel.app/api/music/generate-album-art-url', {
           method: 'POST',
           headers: {
@@ -293,8 +302,8 @@ export default function AddMusic() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            fileName: albumArtPreview.name,
-            fileType: albumArtPreview.type,
+            fileName: albumArtFile.name,
+            fileType: albumArtFile.type,
           }),
         });
   
