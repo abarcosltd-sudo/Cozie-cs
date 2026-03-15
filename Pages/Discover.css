@@ -142,6 +142,35 @@ html, body {
     animation: slideUp 0.5s ease-out;
 }
 
+.trending-card {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.trending-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trending-info {
+  padding: 16px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.chart-album-art {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+}
+
 .trending-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
