@@ -1,105 +1,66 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './Discover.css';
 
 interface TrendingCard {
-  id: number;
+  id: string;
   title: string;
   artist: string;
-  gradient: string;
+  albumArtUrl?: string | null;
 }
 
 interface ChartItem {
-  id: number;
+  id: string;
   number: number;
   title: string;
   artist: string;
-  gradient: string;
+  albumArtUrl?: string | null;
 }
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [trending, setTrending] = useState<TrendingCard[]>([]);
+  const [charts, setCharts] = useState<ChartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const trendingContainerRef = useRef<HTMLDivElement>(null);
 
-  const trendingCards: TrendingCard[] = [
-    {
-      id: 1,
-      title: 'As It Was',
-      artist: 'Harry Styles',
-      gradient: 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)',
-    },
-    {
-      id: 2,
-      title: 'Heat Waves',
-      artist: 'Glass Animals',
-      gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    },
-    {
-      id: 3,
-      title: 'Shivers',
-      artist: 'Ed Sheeran',
-      gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-    },
-    {
-      id: 4,
-      title: 'Good 4 U',
-      artist: 'Olivia Rodrigo',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-    },
-    {
-      id: 5,
-      title: 'Stay',
-      artist: 'The Kid LAROI',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token'); // optional
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const chartItems: ChartItem[] = [
-    {
-      id: 1,
-      number: 1,
-      title: 'Anti-Hero',
-      artist: 'Taylor Swift',
-      gradient: 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)',
-    },
-    {
-      id: 2,
-      number: 2,
-      title: 'Flowers',
-      artist: 'Miley Cyrus',
-      gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    },
-    {
-      id: 3,
-      number: 3,
-      title: 'Calm Down',
-      artist: 'Rema & Selena Gomez',
-      gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-    },
-    {
-      id: 4,
-      number: 4,
-      title: 'Kill Bill',
-      artist: 'SZA',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-    },
-    {
-      id: 5,
-      number: 5,
-      title: "Creepin'",
-      artist: 'Metro Boomin, The Weeknd',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-    },
-  ];
+        const [trendingRes, chartsRes] = await Promise.all([
+          fetch('https://cozie-kohl.vercel.app/api/music/trending', { headers }),
+          fetch('https://cozie-kohl.vercel.app/api/music/charts', { headers }),
+        ]);
+
+        if (!trendingRes.ok || !chartsRes.ok) throw new Error('Failed to fetch');
+
+        const trendingData = await trendingRes.json();
+        const chartsData = await chartsRes.json();
+
+        setTrending(trendingData.trending || []);
+        setCharts(chartsData.charts || []);
+      } catch (err: any) {
+        console.error('Error loading discover data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    console.log('Searching for:', e.target.value.toLowerCase());
   };
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       console.log('Search submitted:', searchQuery);
+      // You can navigate to search results page or filter here
     }
   };
 
@@ -121,22 +82,20 @@ export default function Discover() {
     }
   };
 
-  const playTrending = (index: number) => {
-    console.log('Playing trending song:', index);
+  const playTrending = (id: string) => {
+    console.log('Playing trending song:', id);
   };
 
-  const playChart = (index: number) => {
-    console.log('Playing chart song:', index);
+  const playChart = (id: string) => {
+    console.log('Playing chart song:', id);
   };
 
   const navigate = (page: string) => {
-    console.log('Navigating to:', page);
     switch (page) {
       case 'home':
         window.location.href = '/homefeed';
         break;
       case 'search':
-        // Already on discover
         break;
       case 'add':
         window.location.href = '/sharemusic';
@@ -149,6 +108,34 @@ export default function Discover() {
         break;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="page-wrapper">
+        <div className="discover-container">
+          <div className="feed-header">
+            <div className="header-logo">COZIE</div>
+          </div>
+          <div className="loading">Loading discover...</div>
+        </div>
+        <BottomNav navigate={navigate} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-wrapper">
+        <div className="discover-container">
+          <div className="feed-header">
+            <div className="header-logo">COZIE</div>
+          </div>
+          <div className="error">Error: {error}</div>
+        </div>
+        <BottomNav navigate={navigate} />
+      </div>
+    );
+  }
 
   return (
     <div className="page-wrapper">
@@ -181,41 +168,32 @@ export default function Discover() {
             ref={trendingContainerRef}
             onScroll={handleTrendingScroll}
           >
-            {trendingCards.map((card) => (
+            {trending.map((card) => (
               <div
                 key={card.id}
                 className="trending-card"
-                style={{ background: card.gradient }}
+                style={{ background: card.albumArtUrl ? 'none' : 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)' }}
                 onClick={() => playTrending(card.id)}
               >
-                <div className="trending-info">
-                  <div className="trending-title">{card.title}</div>
-                  <div className="trending-artist">{card.artist}</div>
-                </div>
+                {card.albumArtUrl ? (
+                  <img src={card.albumArtUrl} alt={card.title} className="trending-image" />
+                ) : (
+                  <div className="trending-info">
+                    <div className="trending-title">{card.title}</div>
+                    <div className="trending-artist">{card.artist}</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           {/* Scroll Navigation */}
           <div className="scroll-nav">
-            <button
-              className="scroll-button"
-              onClick={() => scrollTrending('left')}
-            >
-              ◀
-            </button>
+            <button className="scroll-button" onClick={() => scrollTrending('left')}>◀</button>
             <div className="scroll-bar">
-              <div
-                className="scroll-progress"
-                style={{ width: `${scrollProgress}%` }}
-              ></div>
+              <div className="scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
             </div>
-            <button
-              className="scroll-button"
-              onClick={() => scrollTrending('right')}
-            >
-              ▶
-            </button>
+            <button className="scroll-button" onClick={() => scrollTrending('right')}>▶</button>
           </div>
         </div>
 
@@ -223,7 +201,7 @@ export default function Discover() {
         <h2 className="section-header">TOP CHARTS</h2>
 
         <div className="chart-list">
-          {chartItems.map((item) => (
+          {charts.map((item) => (
             <div
               key={item.id}
               className="chart-item"
@@ -232,7 +210,7 @@ export default function Discover() {
               <div className="chart-number">{item.number}</div>
               <div
                 className="chart-album-art"
-                style={{ background: item.gradient }}
+                style={{ background: item.albumArtUrl ? `url(${item.albumArtUrl})` : 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)', backgroundSize: 'cover' }}
               ></div>
               <div className="chart-info">
                 <div className="chart-title">{item.title}</div>
@@ -245,23 +223,29 @@ export default function Discover() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="bottom-nav">
-        <div className="nav-container">
-          <div className="nav-item" onClick={() => navigate('home')}>
-            <div className="nav-icon">🏠</div>
-          </div>
-          <div className="nav-item active" onClick={() => navigate('search')}>
-            <div className="nav-icon">🔍</div>
-          </div>
-          <div className="nav-item" onClick={() => navigate('add')}>
-            <div className="nav-icon">➕</div>
-          </div>
-          <div className="nav-item" onClick={() => navigate('messages')}>
-            <div className="nav-icon">💬</div>
-          </div>
-          <div className="nav-item" onClick={() => navigate('profile')}>
-            <div className="nav-icon">👤</div>
-          </div>
+      <BottomNav navigate={navigate} />
+    </div>
+  );
+}
+
+function BottomNav({ navigate }: { navigate: (page: string) => void }) {
+  return (
+    <div className="bottom-nav">
+      <div className="nav-container">
+        <div className="nav-item" onClick={() => navigate('home')}>
+          <div className="nav-icon">🏠</div>
+        </div>
+        <div className="nav-item active" onClick={() => navigate('search')}>
+          <div className="nav-icon">🔍</div>
+        </div>
+        <div className="nav-item" onClick={() => navigate('add')}>
+          <div className="nav-icon">➕</div>
+        </div>
+        <div className="nav-item" onClick={() => navigate('messages')}>
+          <div className="nav-icon">💬</div>
+        </div>
+        <div className="nav-item" onClick={() => navigate('profile')}>
+          <div className="nav-icon">👤</div>
         </div>
       </div>
     </div>
