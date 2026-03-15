@@ -67,13 +67,19 @@ export default function HomeFeed() {
 
   // Helper to format timestamp (e.g., "2 hours ago")
   const formatTime = (timestamp: string) => {
+    if (!timestamp) return 'Just now';
+    
     const now = new Date();
     const past = new Date(timestamp);
+    
+    // Check if date is valid
+    if (isNaN(past.getTime())) return 'Just now';
+    
     const diffMs = now.getTime() - past.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-
+  
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
