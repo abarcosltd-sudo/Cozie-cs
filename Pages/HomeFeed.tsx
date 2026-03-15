@@ -4,11 +4,12 @@ import './HomeFeed.css';
 interface MusicPost {
   id: string;
   userName: string;
-  postTime: string; // we'll format from createdAt
+  userAvatarUrl?: string; 
+  postTime: string; 
   trackTitle: string;
   trackArtist: string;
-  albumIcon?: string; // optional, could be emoji or placeholder
-  albumArtUrl?: string; // actual image URL
+  albumIcon?: string; 
+  albumArtUrl?: string; 
   likes: number;
   comments: number;
   liked: boolean;
@@ -43,6 +44,7 @@ export default function HomeFeed() {
         const formattedPosts = data.posts.map((post: any) => ({
           id: post.id,
           userName: post.userName || 'Unknown User',
+          userAvatarUrl: post.userAvatarUrl,
           postTime: formatTime(post.createdAt), // implement formatTime
           trackTitle: post.songSnapshot?.title || 'Untitled',
           trackArtist: post.songSnapshot?.artist || 'Unknown Artist',
