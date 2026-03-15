@@ -41,8 +41,6 @@ export default function AddMusic() {
 
   // File states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);      // actual music file
-  const [selectedFilePreview, setSelectedFilePreview] = useState<string>(''); // optional preview for music (if needed)
-
   const [albumArtFile, setAlbumArtFile] = useState<File | null>(null);      // actual album art file
   const [albumArtPreview, setAlbumArtPreview] = useState<string>('');       // preview URL (string)
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -140,10 +138,6 @@ export default function AddMusic() {
     if (file) {
       handleFile(file);
     }
-  };
-  
-  const handleFile = (file: File) => {
-    setSelectedFile(file);
   };
 
   const handleAlbumArtSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
