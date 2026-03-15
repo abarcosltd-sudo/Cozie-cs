@@ -264,6 +264,33 @@
   font-size: 16px;
 }
 
+.comment-input-container {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+}
+
+.comment-input-container input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+}
+
+.comment-input-container button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.comment-input-container button:hover {
+  background: #e0e0e0;
+}
+
 /* Bottom Navigation */
 .bottom-nav {
   position: fixed;
