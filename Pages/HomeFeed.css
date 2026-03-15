@@ -220,6 +220,12 @@
   color: #94a3b8;
 }
 
+.post-caption {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #333;
+}
+
 /* Action Bar */
 .action-bar {
   display: flex;
