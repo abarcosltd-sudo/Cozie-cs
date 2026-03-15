@@ -8,6 +8,7 @@ interface MusicPost {
   postTime: string; 
   trackTitle: string;
   trackArtist: string;
+  caption?: string;
   albumIcon?: string; 
   albumArtUrl?: string; 
   likes: number;
@@ -48,6 +49,7 @@ export default function HomeFeed() {
           postTime: formatTime(post.createdAt), // implement formatTime
           trackTitle: post.songSnapshot?.title || 'Untitled',
           trackArtist: post.songSnapshot?.artist || 'Unknown Artist',
+          caption: post.caption || '', 
           albumIcon: '🎵', // fallback emoji
           albumArtUrl: post.songSnapshot?.albumArtUrl || null,
           likes: post.likes || 0,
@@ -221,6 +223,10 @@ export default function HomeFeed() {
                   <div className="track-title">{post.trackTitle}</div>
                   <div className="track-artist">{post.trackArtist}</div>
                 </div>
+
+                {post.caption && (
+                  <div className="post-caption">{post.caption}</div>
+                )}
 
                 <div className="action-bar">
                   <button
