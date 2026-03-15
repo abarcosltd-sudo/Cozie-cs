@@ -41,7 +41,7 @@ export default function AddMusic() {
 
   // File states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [albumArtPreview, setAlbumArtPreview] = useState<string | null>(null);
+  const [albumArtPreview, setAlbumArtPreview] = useState<File | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
   // Form states
