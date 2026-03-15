@@ -285,7 +285,7 @@ export default function AddMusic() {
   
       // --- 2. Upload album art if provided ---
       let albumArtPublicUrl = null;
-      if (albumArtFile) {
+      if (albumArtPreview) {
         const artRes = await fetch('https://cozie-kohl.vercel.app/api/music/generate-album-art-url', {
           method: 'POST',
           headers: {
@@ -293,8 +293,8 @@ export default function AddMusic() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            fileName: albumArtFile.name,
-            fileType: albumArtFile.type,
+            fileName: albumArtPreview.name,
+            fileType: albumArtPreview.type,
           }),
         });
   
@@ -307,8 +307,8 @@ export default function AddMusic() {
   
         const artUploadRes = await fetch(artSignedUrl, {
           method: 'PUT',
-          body: albumArtFile,
-          headers: { 'Content-Type': albumArtFile.type },
+          body: albumArtPreview,
+          headers: { 'Content-Type': albumArtPreview.type },
         });
   
         if (!artUploadRes.ok) {
