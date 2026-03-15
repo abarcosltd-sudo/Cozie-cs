@@ -173,6 +173,13 @@
   color: #e2e8f0;
 }
 
+.post-caption {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #e2e8f0;
+  margin-bottom: 14px;
+}
+
 /* Album Art */
 .album-art {
   width: 100%;
@@ -218,12 +225,6 @@
 .track-artist {
   font-size: 14px;
   color: #94a3b8;
-}
-
-.post-caption {
-  padding: 8px 0;
-  font-size: 14px;
-  color: #333;
 }
 
 /* Action Bar */
