@@ -20,6 +20,8 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCommentInput, setShowCommentInput] = useState<string | null>(null); // postId
+  const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
     const fetchFeed = async () => {
