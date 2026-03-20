@@ -124,11 +124,24 @@
 }
 
 .user-avatar {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
 .user-details {
@@ -160,10 +173,17 @@
   color: #e2e8f0;
 }
 
+.post-caption {
+  padding: 8px 0;
+  font-size: 14px;
+  color: white;
+  margin-bottom: 14px;
+}
+
 /* Album Art */
 .album-art {
   width: 100%;
-  height: 200px;
+  height: 200px; 
   background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
   border-radius: 12px;
   display: flex;
@@ -172,6 +192,14 @@
   margin-bottom: 15px;
   cursor: pointer;
   transition: transform 0.3s ease;
+  overflow: hidden; /* ensures image stays inside rounded corners */
+}
+
+.album-art .album-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* covers the container, cropping if necessary */
+  border-radius: 12px; /* match container's border-radius */
 }
 
 .album-art:hover {
@@ -234,6 +262,33 @@
 
 .action-icon {
   font-size: 16px;
+}
+
+.comment-input-container {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+}
+
+.comment-input-container input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+}
+
+.comment-input-container button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.comment-input-container button:hover {
+  background: #e0e0e0;
 }
 
 /* Bottom Navigation */

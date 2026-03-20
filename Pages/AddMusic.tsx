@@ -40,8 +40,9 @@ export default function AddMusic() {
   const uploadAreaRef = useRef<HTMLDivElement>(null);
 
   // File states
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [albumArtPreview, setAlbumArtPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);      // actual music file
+  const [albumArtFile, setAlbumArtFile] = useState<File | null>(null);      // actual album art file
+  const [albumArtPreview, setAlbumArtPreview] = useState<string>('');       // preview URL (string)
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
   // Form states
@@ -133,29 +134,31 @@ export default function AddMusic() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      handleFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
     }
   };
 
   const handleAlbumArtSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     if (file.size > 5 * 1024 * 1024) {
       alert('Album art must be less than 5MB');
       return;
     }
-
-    setFormData(prev => ({ ...prev, albumArt: file }));
-
+  
+    // Store the file object for upload
+    setAlbumArtFile(file);
+  
+    // Generate preview as a data URL
     const reader = new FileReader();
     reader.onload = (event) => {
       setAlbumArtPreview(event.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
@@ -221,70 +224,166 @@ export default function AddMusic() {
   };
 
   const handleUploadMusic = async () => {
+    // --- Validation ---
     if (!selectedFile) {
-      alert('Please select a file');
+      alert('Please select a music file');
       return;
     }
-
+  
     if (!validateForm()) {
       alert('Please fill in all required fields');
       return;
     }
-
+  
     if (!formData.originalWork) {
       alert('Please confirm that you have the rights to upload this music');
       return;
     }
-
+  
     setIsLoading(true);
-
-    const musicData = {
-      ...formData,
-      uploadedBy: (() => {
-        try {
-          const profile = sessionStorage.getItem('userProfile');
-          return profile ? JSON.parse(profile).username : 'user';
-        } catch {
-          return 'user';
-        }
-      })(),
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log('Uploading music with metadata:', musicData);
-
-    // Simulate upload progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(progressInterval);
-
-        // Save to session storage
-        try {
-          let uploadedTracks = sessionStorage.getItem('uploadedTracks');
-          const tracks = uploadedTracks ? JSON.parse(uploadedTracks) : [];
-          tracks.push(musicData);
-          sessionStorage.setItem('uploadedTracks', JSON.stringify(tracks));
-        } catch (e) {
-          console.error('Error saving to session storage:', e);
-        }
-
-        // Show success
-        setTimeout(() => {
-          setIsLoading(false);
-          setShowSuccess(true);
-          setTimeout(() => {
-            navigate('/home-feed');
-          }, 2000);
-        }, 500);
+    setUploadProgress(0);
+  
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You are not authenticated. Please log in again.');
+      setIsLoading(false);
+      return;
+    }
+  
+    try {
+      // --- 1. Upload audio file using signed URL ---
+      // Request signed URL for the audio file
+      const audioRes = await fetch('https://cozie-kohl.vercel.app/api/music/generate-upload-url', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          filePurpose: 'audio', // optional: differentiate from album art
+        }),
+      });
+  
+      if (!audioRes.ok) {
+        const error = await audioRes.json();
+        throw new Error(error.message || 'Failed to get upload URL for audio');
       }
-
-      setUploadProgress(Math.round(progress));
-    }, 300);
+  
+      const { signedUrl: audioSignedUrl, publicUrl: audioPublicUrl } = await audioRes.json();
+  
+      // Upload audio file directly to the signed URL
+      const audioUploadRes = await fetch(audioSignedUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: { 'Content-Type': selectedFile.type },
+      });
+  
+      if (!audioUploadRes.ok) {
+        throw new Error('Audio file upload failed');
+      }
+  
+      setUploadProgress(50); // update progress (rough estimate)
+  
+      // --- 2. Upload album art if provided ---
+      let albumArtPublicUrl = null;
+      if (albumArtFile) {
+        const artRes = await fetch('https://cozie-kohl.vercel.app/api/music/generate-album-art-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: albumArtFile.name,
+            fileType: albumArtFile.type,
+          }),
+        });
+      
+        if (!artRes.ok) {
+          const error = await artRes.json();
+          throw new Error(error.message || 'Failed to get upload URL for album art');
+        }
+      
+        const { signedUrl: artSignedUrl, publicUrl: artPublicUrl } = await artRes.json();
+      
+        const artUploadRes = await fetch(artSignedUrl, {
+          method: 'PUT',
+          body: albumArtFile,           // use the file object
+          headers: { 'Content-Type': albumArtFile.type }, // .type exists
+        });
+      
+        if (!artUploadRes.ok) {
+          throw new Error('Album art upload failed');
+        }
+      
+        albumArtPublicUrl = artPublicUrl;
+      }
+  
+      setUploadProgress(80);
+  
+      // --- 3. Save metadata to backend Firestore ---
+      const metadataPayload = {
+        fileUrl: audioPublicUrl,
+        albumArtUrl: albumArtPublicUrl,
+        title: formData.title,
+        artist: formData.artist,
+        featuredArtists: formData.featuredArtists,
+        album: formData.album,
+        genre: formData.genre,
+        subgenre: formData.subgenre,
+        mood: formData.mood,
+        producer: formData.producer,
+        songwriter: formData.songwriter,
+        composer: formData.composer,
+        recordLabel: formData.recordLabel,
+        releaseDate: formData.releaseDate,
+        releaseYear: formData.releaseYear,
+        country: formData.country,
+        language: formData.language,
+        duration: formData.duration,
+        bpm: formData.bpm,
+        musicalKey: formData.musicalKey,
+        isrc: formData.isrc,
+        explicit: formData.explicit,
+        copyright: formData.copyright,
+        publishingRights: formData.publishingRights,
+        originalWork: formData.originalWork,
+        description: formData.description,
+        lyrics: formData.lyrics,
+        tags: formData.tags,
+      };
+  
+      const metadataRes = await fetch('https://cozie-kohl.vercel.app/api/music/add-music', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadataPayload),
+      });
+  
+      if (!metadataRes.ok) {
+        const error = await metadataRes.json();
+        throw new Error(error.message || 'Failed to save music metadata');
+      }
+  
+      setUploadProgress(100);
+  
+      // --- 4. Success and navigation ---
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/homefeed');
+      }, 2000);
+  
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
   return (
     <div className="page-wrapper">
       {/* Header Banner */}

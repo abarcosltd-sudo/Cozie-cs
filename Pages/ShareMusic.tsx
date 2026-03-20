@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './sharemusic.css';
 
 interface Song {
-  id: number;
+  id: string;
   title: string;
   artist: string;
-  albumArt?: string;
+  albumArtUrl?: string; // URL to album art image
 }
 
 interface SharePlatform {
@@ -18,28 +18,12 @@ interface SharePlatform {
 export default function ShareMusic() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSong, setSelectedSong] = useState<Song | null>({
-    id: 1,
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    albumArt: '🎵'
-  });
+  const [searchResults, setSearchResults] = useState<Song[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [caption, setCaption] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['feed']));
   const [isLoading, setIsLoading] = useState(false);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-
-  // Mock song database
-  const mockSongs: Song[] = [
-    { id: 1, title: 'Blinding Lights', artist: 'The Weeknd' },
-    { id: 2, title: 'As It Was', artist: 'Harry Styles' },
-    { id: 3, title: 'Heat Waves', artist: 'Glass Animals' },
-    { id: 4, title: 'Levitating', artist: 'Dua Lipa' },
-    { id: 5, title: 'Shivers', artist: 'Ed Sheeran' },
-    { id: 6, title: 'Good 4 U', artist: 'Olivia Rodrigo' },
-    { id: 7, title: 'Stay', artist: 'The Kid LAROI' },
-    { id: 8, title: 'Anti-Hero', artist: 'Taylor Swift' },
-  ];
 
   const platforms: SharePlatform[] = [
     { id: 'feed', name: 'Feed', icon: '🏠' },
@@ -47,15 +31,50 @@ export default function ShareMusic() {
     { id: 'groups', name: 'Groups', icon: '👥' }
   ];
 
+  // Debounced search
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchQuery.trim().length > 0) {
+        performSearch(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
+  const performSearch = async (query: string) => {
+    setIsSearching(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch(
+        `https://cozie-kohl.vercel.app/api/music/search?q=${encodeURIComponent(query)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) throw new Error('Search failed');
+      const data = await res.json();
+      setSearchResults(data.songs || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      // Optionally show error to user
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setShowSearchResults(e.target.value.trim().length > 0);
   };
 
   const handleSelectSong = (song: Song) => {
     setSelectedSong(song);
     setSearchQuery('');
-    setShowSearchResults(false);
+    setSearchResults([]);
   };
 
   const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -89,49 +108,54 @@ export default function ShareMusic() {
 
     setIsLoading(true);
 
-    const postData = {
-      song: selectedSong,
-      caption: caption.trim(),
-      platforms: Array.from(selectedPlatforms),
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Not authenticated');
 
-    console.log('Posting music share:', postData);
+      const response = await fetch('https://cozie-kohl.vercel.app/api/posts/share-music', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          songId: selectedSong.id,
+          caption: caption.trim(),
+          platforms: Array.from(selectedPlatforms),
+        }),
+      });
 
-    // Simulate API call
-    setTimeout(() => {
-      // Save to session storage for demo
-      let sharedPosts = sessionStorage.getItem('sharedMusicPosts');
-      const posts = sharedPosts ? JSON.parse(sharedPosts) : [];
-      posts.push(postData);
-      sessionStorage.setItem('sharedMusicPosts', JSON.stringify(posts));
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to share music');
+      }
 
-      alert('✓ Music shared successfully!');
+      // Success – navigate to feed
+      navigate('/homefeed');
+    } catch (error: any) {
+      alert(`Error sharing music: ${error.message}`);
+    } finally {
       setIsLoading(false);
-      navigate('/home-feed');
-    }, 1500);
+    }
   };
 
-  const filteredSongs = mockSongs.filter(
-    song =>
-      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      song.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Determine if we should show search results
+  const showSearchResults = searchQuery.trim().length > 0 && !selectedSong;
 
   return (
     <div className="sharemusic-overlay">
       <div className="sharemusic-modal">
         {/* Header */}
         <div className="sharemusic-header">
-          <button 
-            className="close-button" 
+          <button
+            className="close-button"
             onClick={handleClose}
             aria-label="Close"
           >
             ✕
           </button>
           <h2 className="sharemusic-title">Share Music</h2>
-          <button 
+          <button
             className="post-button"
             onClick={handlePost}
             disabled={isLoading || !selectedSong || selectedPlatforms.size === 0}
@@ -151,18 +175,28 @@ export default function ShareMusic() {
               onChange={handleSearchChange}
               className="song-search-input"
             />
+            {isSearching && <span className="search-spinner">⏳</span>}
           </div>
 
           {/* Search Results */}
           {showSearchResults && (
             <div className="search-results">
-              {filteredSongs.map(song => (
+              {searchResults.length === 0 && !isSearching && (
+                <div className="no-results">No songs found</div>
+              )}
+              {searchResults.map(song => (
                 <div
                   key={song.id}
                   className="search-result-item"
                   onClick={() => handleSelectSong(song)}
                 >
-                  <div className="song-thumbnail">♪</div>
+                  <div className="song-thumbnail">
+                    {song.albumArtUrl ? (
+                      <img src={song.albumArtUrl} alt={song.title} className="thumbnail-image" />
+                    ) : (
+                      <span>♪</span>
+                    )}
+                  </div>
                   <div className="song-info">
                     <div className="song-title">{song.title}</div>
                     <div className="song-artist">{song.artist}</div>
@@ -177,7 +211,11 @@ export default function ShareMusic() {
         {selectedSong && !showSearchResults && (
           <div className="selected-song-card">
             <div className="song-album-art">
-              <div className="album-placeholder">♪</div>
+              {selectedSong.albumArtUrl ? (
+                <img src={selectedSong.albumArtUrl} alt={selectedSong.title} className="album-image" />
+              ) : (
+                <div className="album-placeholder">♪</div>
+              )}
             </div>
             <div className="song-details">
               <div className="selected-song-title">{selectedSong.title}</div>
