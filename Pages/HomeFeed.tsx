@@ -214,6 +214,85 @@ export default function HomeFeed() {
           <div className="notification-icon">🔔</div>
         </div>
 
+        {/* Posts Container */}
+        <div className="feed-content">
+          {posts.length === 0 ? (
+            <div className="no-posts">No posts yet – share some music!</div>
+          ) : (
+            posts.map((post) => (
+              <div key={post.id} className="music-post">
+                <div className="post-header">
+                  <div className="user-info">
+                    <div className="user-avatar">
+                      {post.userAvatarUrl ? (
+                        <img src={post.userAvatarUrl} alt={post.userName} className="avatar-image" />
+                      ) : (
+                        <div className="avatar-placeholder" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }}></div>
+                      )}
+                    </div>
+                    <div className="user-details">
+                      <div className="user-name">{post.userName}</div>
+                      <div className="post-time">{post.postTime}</div>
+                    </div>
+                  </div>
+                  <div className="post-menu">⋯</div>
+                </div>
+
+                <div className="album-art" onClick={() => playMusic(post.id)}>
+                  {post.albumArtUrl ? (
+                    <img src={post.albumArtUrl} alt={post.trackTitle} className="album-image" />
+                  ) : (
+                    <div className="album-icon">{post.albumIcon}</div>
+                  )}
+                </div>
+
+                <div className="track-info">
+                  <div className="track-title">{post.trackTitle}</div>
+                  <div className="track-artist">{post.trackArtist}</div>
+                </div>
+
+                {post.caption && (
+                  <div className="post-caption">{post.caption}</div>
+                )}
+
+                <div className="action-bar">
+                  <button
+                    className={`action-button ${post.liked ? 'liked' : ''}`}
+                    onClick={() => toggleLike(post.id)}
+                  >
+                    <span className="action-icon">💜</span>
+                    <span>{post.likes}</span>
+                  </button>
+                  <button className="action-button" onClick={() => setShowCommentInput(post.id)}>
+                    <span className="action-icon">💬</span>
+                    <span>{post.comments}</span>
+                  </button>
+                  <button className="action-button">
+                    <span className="action-icon">📤</span>
+                    <span>Share</span>
+                  </button>
+                  <button className="action-button">
+                    <span className="action-icon">➕</span>
+                  </button>
+                </div>
+
+                {showCommentInput === post.id && (
+                  <div className="comment-input-container">
+                    <input
+                      type="text"
+                      placeholder="Add a comment..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                    />
+                    <button onClick={() => addComment(post.id)}>Post</button>
+                    <button onClick={() => setShowCommentInput(null)}>Cancel</button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
         
       {/* Bottom Navigation */}
       <BottomNav navigate={navigate} />
