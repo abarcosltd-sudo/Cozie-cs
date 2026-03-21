@@ -214,7 +214,7 @@ export default function HomeFeed() {
           <div className="notification-icon">🔔</div>
         </div>
 
-        {/* Posts Container */}
+        /* {/* Posts Container */}
         <div className="feed-content">
           {posts.length === 0 ? (
             <div className="no-posts">No posts yet – share some music!</div>
@@ -292,7 +292,7 @@ export default function HomeFeed() {
             ))
           )}
         </div>
-      </div>
+      </div> */
 
       {/* Bottom Navigation */}
       <BottomNav navigate={navigate} />
