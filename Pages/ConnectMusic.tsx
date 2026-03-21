@@ -68,7 +68,7 @@ export default function ConnectMusic() {
         connected: false,
         skipped: true
       }));
-      navigate('/homefeed');
+      navigate('/login');
     }
   };
 
