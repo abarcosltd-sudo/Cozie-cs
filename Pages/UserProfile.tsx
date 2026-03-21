@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './UserProfile.css';
+import axios from 'axios';
 
 interface GridPost {
   id: number;
