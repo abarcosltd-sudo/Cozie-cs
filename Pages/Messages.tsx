@@ -183,7 +183,7 @@ export default function Messages() {
   const handleNavigation = (page: string) => {
     switch (page) {
       case 'home':
-        navigate('/homefeed');
+        navigate('/home-feed');
         break;
       case 'search':
         navigate('/discover');
