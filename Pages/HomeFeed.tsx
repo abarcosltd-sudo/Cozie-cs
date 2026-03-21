@@ -32,7 +32,7 @@ export default function HomeFeed() {
           return;
         }
 
-        const res = await fetch('https://cozie-kohl.vercel.app/api/posts/feed', {
+        const res = await fetch('https://cozie-kohl.vercel.app/api/posts/feed?_t=${Date.now()}', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
