@@ -42,7 +42,6 @@ export default function HomeFeed() {
         }
 
         const data = await res.json();
-        console.log(data)
 
         // Transform backend data to match our interface
         const formattedPosts = data.posts.map((post: any) => ({
@@ -293,7 +292,7 @@ export default function HomeFeed() {
           )}
         </div>
       </div>
-        
+
       {/* Bottom Navigation */}
       <BottomNav navigate={navigate} />
     </div>
