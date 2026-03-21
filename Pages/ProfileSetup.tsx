@@ -226,7 +226,7 @@ export default function ProfileSetup() {
   const skipProfile = (e: React.MouseEvent) => {
     e.preventDefault();
     if (confirm('Skip profile setup? You can always complete it later in settings.')) {
-      navigate('/connectmusic');
+      navigate('/connect-music');
     }
   };
   return (
