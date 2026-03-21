@@ -93,12 +93,12 @@ export default function Discover() {
   const navigate = (page: string) => {
     switch (page) {
       case 'home':
-        window.location.href = '/homefeed';
+        window.location.href = '/home-feed';
         break;
       case 'search':
         break;
       case 'add':
-        window.location.href = '/sharemusic';
+        window.location.href = '/share-music';
         break;
       case 'messages':
         window.location.href = '/messages';

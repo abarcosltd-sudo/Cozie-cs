@@ -113,15 +113,15 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/splash" element={<Splash />} />
-        <Route path="/homefeed" element={<HomeFeed />} />
+        <Route path="/home-feed" element={<HomeFeed />} />
         <Route path="/discover" element={<Discover />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verification" element={<Verification />} />
         <Route path="/preference" element={<Preference />} />
-        <Route path="/profilesetup" element={<ProfileSetup />} />
-        <Route path="/connectmusic" element={<ConnectMusic />} />
+        <Route path="/profile-setup" element={<ProfileSetup />} />
+        <Route path="/connect-music" element={<ConnectMusic />} />
         <Route path="/share-music" element={<ShareMusic />} />
         <Route path="/add-music" element={<AddMusic />} />
         <Route path="/play-music" element={<PlayMusic />} />

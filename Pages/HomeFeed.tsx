@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import './HomeFeed.css';
 
@@ -20,8 +21,6 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCommentInput, setShowCommentInput] = useState<string | null>(null); // postId
-  const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -33,7 +32,7 @@ export default function HomeFeed() {
           return;
         }
 
-        const res = await fetch('https://cozie-kohl.vercel.app/api/posts/feed', {
+        const res = await fetch(`https://cozie-kohl.vercel.app/api/posts/feed?_t=${Date.now()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -42,6 +41,7 @@ export default function HomeFeed() {
         }
 
         const data = await res.json();
+        console.log(data)
 
         // Transform backend data to match our interface
         const formattedPosts = data.posts.map((post: any) => ({
@@ -132,30 +132,6 @@ export default function HomeFeed() {
   const playMusic = (songId: string) => {
     console.log('Playing music from post:', songId);
     // could open player or navigate to song page
-  };
-
-  const addComment = async (postId: string) => {
-    if (!commentText.trim()) return;
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`https://cozie-kohl.vercel.app/api/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ text: commentText })
-      });
-      if (!res.ok) throw new Error('Failed to add comment');
-      const data = await res.json();
-      // Update comment count with server response
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: data.commentCount } : p));
-      setCommentText('');
-      setShowCommentInput(null);
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      alert('Failed to add comment');
-    }
   };
 
   const navigate = (page: string) => {
@@ -262,7 +238,7 @@ export default function HomeFeed() {
                     <span className="action-icon">💜</span>
                     <span>{post.likes}</span>
                   </button>
-                  <button className="action-button" onClick={() => setShowCommentInput(post.id)}>
+                  <button className="action-button">
                     <span className="action-icon">💬</span>
                     <span>{post.comments}</span>
                   </button>
@@ -274,19 +250,6 @@ export default function HomeFeed() {
                     <span className="action-icon">➕</span>
                   </button>
                 </div>
-
-                {showCommentInput === post.id && (
-                  <div className="comment-input-container">
-                    <input
-                      type="text"
-                      placeholder="Add a comment..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                    />
-                    <button onClick={() => addComment(post.id)}>Post</button>
-                    <button onClick={() => setShowCommentInput(null)}>Cancel</button>
-                  </div>
-                )}
               </div>
             ))
           )}

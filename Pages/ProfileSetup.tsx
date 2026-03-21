@@ -215,7 +215,7 @@ export default function ProfileSetup() {
       }
 
       // Success – proceed to next onboarding step (Connect Streaming)
-      navigate('/connectmusic');
+      navigate('/connect-music');
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -226,7 +226,7 @@ export default function ProfileSetup() {
   const skipProfile = (e: React.MouseEvent) => {
     e.preventDefault();
     if (confirm('Skip profile setup? You can always complete it later in settings.')) {
-      navigate('/connectmusic');
+      navigate('/connect-music');
     }
   };
   return (
