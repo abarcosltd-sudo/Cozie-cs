@@ -15,6 +15,7 @@ import ShareMusic from "../Pages/ShareMusic";
 import AddMusic from "../Pages/AddMusic";
 import PlayMusic from "../Pages/PlayMusic";
 import Messages from "../Pages/Messages";
+import ComingSoon from "../Pages/ComingSoon";
 
 const API_URL = "https://cozie-kohl.vercel.app/api/home";
 
@@ -125,6 +126,7 @@ export default function App() {
         <Route path="/add-music" element={<AddMusic />} />
         <Route path="/play-music" element={<PlayMusic />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
       </Routes>
     </BrowserRouter>
   );
