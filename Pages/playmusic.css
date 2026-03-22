@@ -98,8 +98,8 @@ body {
 }
 
 .album-art {
-  width: 320px;
-  height: 320px;
+  width: 20px;
+  height: 20px;
   border-radius: 20px;
   background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
   box-shadow: 0 20px 60px rgba(168, 85, 247, 0.4);
