@@ -13,10 +13,12 @@
     padding-bottom: 80px;
     max-width: 500px;
     margin: 0 auto;
+    animation: fadeIn 0.8s ease-out;
 }
 
 @keyframes fadeIn {
     from {
+        animation: fadeIn 0.8s ease-out;
         opacity: 0;
         transform: translateY(20px);
     }
