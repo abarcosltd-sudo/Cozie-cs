@@ -20,7 +20,7 @@ interface ChartItem {
 }
 
 export default function Discover() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Renamed from navigate to navigateTo to avoid conflict
   const [searchQuery, setSearchQuery] = useState('');
   const [scrollProgress, setScrollProgress] = useState(0);
   const [trending, setTrending] = useState<TrendingCard[]>([]);
@@ -32,7 +32,7 @@ export default function Discover() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token'); // optional
+        const token = localStorage.getItem('token');
         const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
         const [trendingRes, chartsRes] = await Promise.all([
@@ -64,7 +64,8 @@ export default function Discover() {
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       console.log('Search submitted:', searchQuery);
-      // You can navigate to search results page or filter here
+      // Navigate to search results page
+      navigate(`/search-results?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -87,7 +88,7 @@ export default function Discover() {
   };
 
   // Updated: Navigate to play-music page with song data
-  const playTrending = (song: TrendingCard) => {
+  const handlePlayTrending = (song: TrendingCard) => {
     navigate('/play-music', {
       state: {
         songId: song.id,
@@ -100,7 +101,7 @@ export default function Discover() {
   };
 
   // Updated: Navigate to play-music page with song data
-  const playChart = (song: ChartItem) => {
+  const handlePlayChart = (song: ChartItem) => {
     navigate('/play-music', {
       state: {
         songId: song.id,
@@ -112,12 +113,13 @@ export default function Discover() {
     });
   };
 
-  const navigate = (page: string) => {
+  const navigateToPage = (page: string) => {
     switch (page) {
       case 'home':
         navigate('/home-feed');
         break;
       case 'search':
+        // Already on discover
         break;
       case 'add':
         navigate('/share-music');
@@ -140,7 +142,7 @@ export default function Discover() {
           </div>
           <div className="loading">Loading discover...</div>
         </div>
-        <BottomNav navigate={navigate} />
+        <BottomNav navigateToPage={navigateToPage} />
       </div>
     );
   }
@@ -154,7 +156,7 @@ export default function Discover() {
           </div>
           <div className="error">Error: {error}</div>
         </div>
-        <BottomNav navigate={navigate} />
+        <BottomNav navigateToPage={navigateToPage} />
       </div>
     );
   }
@@ -195,7 +197,7 @@ export default function Discover() {
                 key={card.id}
                 className="trending-card"
                 style={{ background: card.albumArtUrl ? 'none' : 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)' }}
-                onClick={() => playTrending(card.id)}
+                onClick={() => handlePlayTrending(card)}
               >
                 {card.albumArtUrl ? (
                   <img src={card.albumArtUrl} alt={card.title} className="trending-image" />
@@ -227,12 +229,12 @@ export default function Discover() {
             <div
               key={item.id}
               className="chart-item"
-              onClick={() => playChart(item.id)}
+              onClick={() => handlePlayChart(item)}
             >
               <div className="chart-number">{item.number}</div>
               <div
                 className="chart-album-art"
-                style={{ background: item.albumArtUrl ? `url(${item.albumArtUrl})` : 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)', backgroundSize: 'cover' }}
+                style={{ background: item.albumArtUrl ? `url(${item.albumArtUrl})` : 'linear-gradient(135deg, #c084fc 0%, #ec4899 100%)', backgroundSize: 'cover', backgroundPosition: 'center' }}
               ></div>
               <div className="chart-info">
                 <div className="chart-title">{item.title}</div>
@@ -245,28 +247,28 @@ export default function Discover() {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNav navigate={navigate} />
+      <BottomNav navigateToPage={navigateToPage} />
     </div>
   );
 }
 
-function BottomNav({ navigate }: { navigate: (page: string) => void }) {
+function BottomNav({ navigateToPage }: { navigateToPage: (page: string) => void }) {
   return (
     <div className="bottom-nav">
       <div className="nav-container">
-        <div className="nav-item" onClick={() => navigate('home')}>
+        <div className="nav-item" onClick={() => navigateToPage('home')}>
           <div className="nav-icon">🏠</div>
         </div>
-        <div className="nav-item active" onClick={() => navigate('search')}>
+        <div className="nav-item active" onClick={() => navigateToPage('search')}>
           <div className="nav-icon">🔍</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('add')}>
+        <div className="nav-item" onClick={() => navigateToPage('add')}>
           <div className="nav-icon">➕</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('messages')}>
+        <div className="nav-item" onClick={() => navigateToPage('messages')}>
           <div className="nav-icon">💬</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('profile')}>
+        <div className="nav-item" onClick={() => navigateToPage('profile')}>
           <div className="nav-icon">👤</div>
         </div>
       </div>
