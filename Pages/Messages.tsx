@@ -43,7 +43,7 @@ export default function Messages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  //const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
   const messagesAreaRef = useRef<HTMLDivElement>(null);
