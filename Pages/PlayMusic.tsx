@@ -173,7 +173,7 @@ export default function PlayMusic() {
   const handleNavigation = (page: string) => {
     switch (page) {
       case 'home':
-        navigate('/home');
+        navigate('/home-feed');
         break;
       case 'search':
         navigate('/discover');
