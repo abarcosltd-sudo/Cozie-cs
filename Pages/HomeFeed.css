@@ -188,7 +188,7 @@
   height: 200px; 
   background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
   border-radius: 12px;
-  display: flex;
+  display: block;
   align-items: center;
   justify-content: center;
   margin-bottom: 15px;
@@ -202,6 +202,7 @@
   height: 100%;
   object-fit: cover; /* covers the container, cropping if necessary */
   border-radius: 12px; /* match container's border-radius */
+  display: block; 
 }
 
 .album-art:hover {
