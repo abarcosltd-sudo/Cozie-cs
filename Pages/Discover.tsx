@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Discover.css';
 
 interface TrendingCard {
@@ -17,6 +18,7 @@ interface ChartItem {
 }
 
 export default function Discover() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [scrollProgress, setScrollProgress] = useState(0);
   const [trending, setTrending] = useState<TrendingCard[]>([]);
@@ -82,29 +84,47 @@ export default function Discover() {
     }
   };
 
-  const playTrending = (id: string) => {
-    console.log('Playing trending song:', id);
+  // Updated: Navigate to play-music page with song data
+  const playTrending = (song: TrendingCard) => {
+    navigate('/play-music', {
+      state: {
+        songId: song.id,
+        title: song.title,
+        artist: song.artist,
+        albumArtUrl: song.albumArtUrl,
+        fileUrl: song.fileUrl
+      }
+    });
   };
 
-  const playChart = (id: string) => {
-    console.log('Playing chart song:', id);
+  // Updated: Navigate to play-music page with song data
+  const playChart = (song: ChartItem) => {
+    navigate('/play-music', {
+      state: {
+        songId: song.id,
+        title: song.title,
+        artist: song.artist,
+        albumArtUrl: song.albumArtUrl,
+        fileUrl: song.fileUrl
+      }
+    });
   };
 
   const navigate = (page: string) => {
     switch (page) {
       case 'home':
-        window.location.href = '/home-feed';
+        navigate('/home-feed');
         break;
       case 'search':
         break;
       case 'add':
-        window.location.href = '/share-music';
+        navigate('/share-music');
         break;
       case 'messages':
-        window.location.href = '/messages';
+        navigate('/messages');
         break;
       case 'profile':
-        window.location.href = '/profile';
+        navigate('/profile');
         break;
     }
   };
