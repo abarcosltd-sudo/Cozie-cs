@@ -374,7 +374,7 @@ export default function AddMusic() {
       // --- 4. Success and navigation ---
       setShowSuccess(true);
       setTimeout(() => {
-        navigate('/homefeed');
+        navigate('/home-feed');
       }, 2000);
   
     } catch (error: any) {
