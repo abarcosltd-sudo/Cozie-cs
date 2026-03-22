@@ -15,14 +15,6 @@ interface MusicTrack {
   liked?: boolean;
 }
 
-interface QueueItem {
-  id: string;
-  title: string;
-  artist: string;
-  duration: string;
-  albumArtUrl?: string | null;
-}
-
 export default function PlayMusic() {
   const navigate = useNavigate();
   const location = useLocation();
