@@ -58,7 +58,7 @@ export default function PlayMusic() {
 
         const data = await res.json();
         const tracks: MusicTrack[] = data.trending || [];
-
+        console.log(tracks)
         // Set queue
         setQueue(tracks);
 
