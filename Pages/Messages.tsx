@@ -43,7 +43,7 @@ export default function Messages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  //const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
   const messagesAreaRef = useRef<HTMLDivElement>(null);
@@ -200,32 +200,32 @@ export default function Messages() {
     }
   };
 
-  const sendMusicShare = async (musicTitle: string, musicArtist: string, musicUrl?: string) => {
-    if (!activeChat) return;
+  // const sendMusicShare = async (musicTitle: string, musicArtist: string, musicUrl?: string) => {
+  //   if (!activeChat) return;
     
-    try {
-      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${activeChat}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          text: '',
-          isMusic: true,
-          musicTitle,
-          musicArtist,
-          musicUrl
-        })
-      });
+  //   try {
+  //     const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${activeChat}`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         text: '',
+  //         isMusic: true,
+  //         musicTitle,
+  //         musicArtist,
+  //         musicUrl
+  //       })
+  //     });
       
-      if (res.ok) {
-        fetchMessages(activeChat);
-      }
-    } catch (error) {
-      console.error('Error sharing music:', error);
-    }
-  };
+  //     if (res.ok) {
+  //       fetchMessages(activeChat);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error sharing music:', error);
+  //   }
+  // };
 
   const scrollToBottom = () => {
     if (messagesAreaRef.current) {
