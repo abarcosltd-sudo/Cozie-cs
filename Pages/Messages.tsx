@@ -3,468 +3,487 @@ import { useNavigate } from 'react-router-dom';
 import './messages.css';
 
 interface Conversation {
-  id: number;
+  id: string;
+  otherUserId: string;
   name: string;
   lastMessage: string;
-  time: string;
-  unreadCount?: number;
-  avatar: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  avatar: string | null;
+  avatarGradient: string;
   isOnline: boolean;
 }
 
 interface Message {
-  id: number;
+  id: string;
   text: string;
-  time: string;
+  timestamp: string;
   sent: boolean;
   isMusic?: boolean;
   musicTitle?: string;
   musicArtist?: string;
+  musicUrl?: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  photoURL: string | null;
+  isOnline: boolean;
 }
 
 export default function Messages() {
-const navigate = useNavigate();
-const [activeChat, setActiveChat] = useState<number | null>(null);
-const [searchQuery, setSearchQuery] = useState('');
-const [messageInput, setMessageInput] = useState('');
-const [messages, setMessages] = useState<Message[]>([
-{
-id: 1,
-text: "Hey! How's it going?",
-time: '10:30 AM',
-sent: false,
-},
-{
-id: 2,
-text: 'Great! Just discovered this amazing song 🎵',
-time: '10:32 AM',
-sent: true,
-},
-{
-id: 3,
-text: 'Oh nice! What is it?',
-time: '10:33 AM',
-sent: false,
-},
-{
-id: 4,
-text: 'Bohemian Rhapsody',
-time: '10:35 AM',
-sent: true,
-isMusic: true,
-musicTitle: 'Bohemian Rhapsody',
-musicArtist: 'Queen',
-},
-{
-id: 5,
-text: 'Classic! Love this one 💜',
-time: '10:36 AM',
-sent: false,
-},
-]);
+  const navigate = useNavigate();
+  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  
+  const messagesAreaRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const token = localStorage.getItem('token');
 
-const [conversations] = useState<Conversation[]>([
-{
-id: 1,
-name: 'Sarah Johnson',
-lastMessage: 'Check out this song! 🎵',
-time: '2m ago',
-unreadCount: 2,
-avatar: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-isOnline: true,
-},
-{
-id: 2,
-name: 'Mike Chen',
-lastMessage: 'That concert was amazing!',
-time: '1h ago',
-avatar: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-isOnline: true,
-},
-{
-id: 3,
-name: 'Emma Davis',
-lastMessage: 'Have you heard the new album?',
-time: '3h ago',
-unreadCount: 1,
-avatar: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-isOnline: false,
-},
-{
-id: 4,
-name: 'Alex Thompson',
-lastMessage: 'Thanks for the playlist!',
-time: 'Yesterday',
-avatar: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-isOnline: true,
-},
-{
-id: 5,
-name: 'Lisa Park',
-lastMessage: 'See you at the show! 🎸',
-time: '2d ago',
-avatar: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-isOnline: false,
-},
-]);
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (token) {
+      fetchConversations();
+    }
+  }, [token]);
 
-const messagesAreaRef = useRef<HTMLDivElement>(null);
-const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  // Fetch messages when active chat changes
+  useEffect(() => {
+    if (activeChat && token) {
+      fetchMessages(activeChat);
+    }
+  }, [activeChat]);
 
-const currentConversation = conversations.find((c) => c.id === activeChat);
+  // Poll for new messages every 5 seconds
+  useEffect(() => {
+    if (!activeChat) return;
+    
+    const interval = setInterval(() => {
+      fetchMessages(activeChat, false);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [activeChat]);
 
-// Scroll to bottom when messages update
-useEffect(() => {
-if (messagesAreaRef.current) {
-messagesAreaRef.current.scrollTop = messagesAreaRef.current.scrollHeight;
-}
-}, [messages, activeChat]);
+  const fetchConversations = async () => {
+    try {
+      const res = await fetch('https://cozie-kohl.vercel.app/api/conversations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConversations(data.conversations);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-// Auto-resize textarea
-const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-setMessageInput(e.target.value);
-if (messageInputRef.current) {
-messageInputRef.current.style.height = 'auto';
-messageInputRef.current.style.height = Math.min(
-messageInputRef.current.scrollHeight,
-100
-) + 'px';
-}
-};
+  const fetchMessages = async (conversationId: string, scroll = true) => {
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const formattedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          text: msg.text || '',
+          timestamp: formatTime(msg.timestamp),
+          sent: msg.senderId === getUserIdFromToken(),
+          isMusic: msg.isMusic || false,
+          musicTitle: msg.musicTitle,
+          musicArtist: msg.musicArtist,
+          musicUrl: msg.musicUrl
+        }));
+        setMessages(formattedMessages);
+        if (scroll) {
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
 
-const handleSendMessage = () => {
-if (messageInput.trim()) {
-const now = new Date();
-const timeStr = now.toLocaleTimeString('en-US', {
-hour: 'numeric',
-minute: '2-digit',
-hour12: true,
-});
+  const fetchAvailableUsers = async () => {
+    try {
+      const res = await fetch('https://cozie-kohl.vercel.app/api/users/available', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAvailableUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
-const newMessage: Message = {
-id: messages.length + 1,
-text: messageInput,
-time: timeStr,
-sent: true,
-};
+  const openNewChat = () => {
+    fetchAvailableUsers();
+    setShowNewChatModal(true);
+  };
 
-setMessages([...messages, newMessage]);
-setMessageInput('');
-if (messageInputRef.current) {
-messageInputRef.current.style.height = 'auto';
-}
-}
-};
+  const startNewChat = (user: User) => {
+    // Create a temporary conversation
+    const newConversation: Conversation = {
+      id: user.id,
+      otherUserId: user.id,
+      name: user.name,
+      lastMessage: '',
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0,
+      avatar: user.photoURL,
+      avatarGradient: getRandomGradient(),
+      isOnline: user.isOnline
+    };
+    setConversations([newConversation, ...conversations]);
+    setActiveChat(user.id);
+    setShowNewChatModal(false);
+    setMessages([]);
+  };
 
-const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-if (e.key === 'Enter' && !e.shiftKey) {
-e.preventDefault();
-handleSendMessage();
-}
-};
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !activeChat || sending) return;
+    
+    setSending(true);
+    const text = messageInput.trim();
+    setMessageInput('');
+    
+    // Optimistic update
+    const optimisticMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      timestamp: formatTime(new Date().toISOString()),
+      sent: true,
+      isMusic: false
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    scrollToBottom();
+    
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${activeChat}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        // Refresh messages to get real data
+        fetchMessages(activeChat);
+        // Refresh conversations list
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Revert optimistic update
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+    } finally {
+      setSending(false);
+    }
+  };
 
-const openChat = (id: number) => {
-setActiveChat(id);
-};
+  const sendMusicShare = async (musicTitle: string, musicArtist: string, musicUrl?: string) => {
+    if (!activeChat) return;
+    
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${activeChat}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: '',
+          isMusic: true,
+          musicTitle,
+          musicArtist,
+          musicUrl
+        })
+      });
+      
+      if (res.ok) {
+        fetchMessages(activeChat);
+      }
+    } catch (error) {
+      console.error('Error sharing music:', error);
+    }
+  };
 
-const closeChat = () => {
-setActiveChat(null);
-};
+  const scrollToBottom = () => {
+    if (messagesAreaRef.current) {
+      messagesAreaRef.current.scrollTop = messagesAreaRef.current.scrollHeight;
+    }
+  };
 
-const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-setSearchQuery(e.target.value.toLowerCase());
-};
+  const formatTime = (timestamp: string) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
-const filteredConversations = conversations.filter((conv) =>
-conv.name.toLowerCase().includes(searchQuery) ||
-conv.lastMessage.toLowerCase().includes(searchQuery)
-);
+  const getUserIdFromToken = (): string => {
+    // Parse JWT to get user ID (you can also store user ID in localStorage)
+    return localStorage.getItem('userId') || '';
+  };
 
-const handleNavigation = (page: string) => {
-switch (page) {
-case 'home':
-        navigate('/homefeed');
-        navigate('/home-feed');
-break;
-case 'search':
-navigate('/discover');
-break;
-case 'add':
-navigate('/add-music');
-break;
-case 'messages':
-break;
-case 'profile':
-navigate('/profile');
-break;
-}
-};
+  const getRandomGradient = () => {
+    const gradients = [
+      'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+      'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+      'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+      'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+      'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+    ];
+    return gradients[Math.floor(Math.random() * gradients.length)];
+  };
 
-const playSharedMusic = () => {
-navigate('/play-music');
-};
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
-const newMessage = () => {
-console.log('New message');
-};
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageInput(e.target.value);
+    if (messageInputRef.current) {
+      messageInputRef.current.style.height = 'auto';
+      messageInputRef.current.style.height = Math.min(
+        messageInputRef.current.scrollHeight,
+        100
+      ) + 'px';
+    }
+  };
 
-const audioCall = () => {
-console.log('Starting audio call...');
-};
+  const filteredConversations = conversations.filter(conv =>
+    conv.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-const videoCall = () => {
-console.log('Starting video call...');
-};
+  const currentConversation = conversations.find(c => c.id === activeChat);
 
-const chatInfo = () => {
-console.log('Opening chat info...');
-};
+  return (
+    <div className="page-wrapper">
+      {/* Header Banner */}
+      <div className="header-banner">
+        <div className="header-left">
+          {activeChat && (
+            <div className="back-button" onClick={() => setActiveChat(null)}>
+              ←
+            </div>
+          )}
+          <div className="header-title">
+            {activeChat ? currentConversation?.name : 'Messages'}
+          </div>
+        </div>
+        <button className="new-message-button" onClick={openNewChat}>
+          ✏️
+        </button>
+      </div>
 
-const attachMusic = () => {
-console.log('Attach music');
-};
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="modal-overlay" onClick={() => setShowNewChatModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>New Message</h3>
+              <button onClick={() => setShowNewChatModal(false)}>✕</button>
+            </div>
+            <div className="users-list">
+              {availableUsers.map(user => (
+                <div key={user.id} className="user-item" onClick={() => startNewChat(user)}>
+                  <div className="user-avatar" style={{
+                    background: user.photoURL ? `url(${user.photoURL})` : getRandomGradient(),
+                    backgroundSize: 'cover'
+                  }}></div>
+                  <div className="user-info">
+                    <div className="user-name">{user.name}</div>
+                    <div className="user-username">@{user.username}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-const attachImage = () => {
-console.log('Attach image');
-};
+      {/* Messages Container */}
+      <div className="messages-container">
+        {!activeChat && (
+          <>
+            {/* Search Bar */}
+            <div className="search-section">
+              <div className="search-bar">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search messages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
 
-return (
-<div className="page-wrapper">
-{/* Header Banner */}
-<div className="header-banner">
-<div className="header-left">
-{activeChat && (
-<div className="back-button" onClick={closeChat}>
-←
-</div>
-)}
-<div className="header-title">
-{activeChat ? currentConversation?.name : 'Messages'}
-</div>
-</div>
-<button className="new-message-button" onClick={newMessage}>
-✏️
-</button>
-</div>
+            {/* Conversations List */}
+            <div className="conversations-list">
+              {filteredConversations.length > 0 ? (
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`conversation-item ${conversation.unreadCount > 0 ? 'unread' : ''}`}
+                    onClick={() => setActiveChat(conversation.id)}
+                  >
+                    <div
+                      className="avatar"
+                      style={{
+                        background: conversation.avatar ? `url(${conversation.avatar})` : conversation.avatarGradient,
+                        backgroundSize: conversation.avatar ? 'cover' : 'auto'
+                      }}
+                    >
+                      {conversation.isOnline && <div className="online-indicator"></div>}
+                    </div>
+                    <div className="conversation-info">
+                      <div className="conversation-header">
+                        <span className="conversation-name">{conversation.name}</span>
+                        <span className="conversation-time">
+                          {new Date(conversation.lastMessageTime).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="conversation-preview">
+                        <span className="last-message">{conversation.lastMessage}</span>
+                        {conversation.unreadCount > 0 && (
+                          <span className="unread-badge">{conversation.unreadCount}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">💬</div>
+                  <div className="empty-text">No conversations yet</div>
+                  <div className="empty-subtext">Click the ✏️ button to start a new chat</div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
-{/* Messages Container */}
-<div className="messages-container">
-{!activeChat && (
-<>
-{/* Search Bar */}
-<div className="search-section">
-<div className="search-bar">
-<span className="search-icon">🔍</span>
-<input
-type="text"
-className="search-input"
-placeholder="Search messages..."
-value={searchQuery}
-onChange={handleSearch}
-/>
-</div>
-</div>
+        {activeChat && (
+          <>
+            {/* Chat Header */}
+            <div className="chat-header">
+              <div
+                className="chat-avatar"
+                style={{
+                  background: currentConversation?.avatar ? `url(${currentConversation.avatar})` : currentConversation?.avatarGradient,
+                  backgroundSize: 'cover'
+                }}
+              ></div>
+              <div className="chat-user-info">
+                <div className="chat-user-name">{currentConversation?.name}</div>
+                <div className="chat-user-status">
+                  {currentConversation?.isOnline ? 'Active now' : 'Offline'}
+                </div>
+              </div>
+            </div>
 
-{/* Conversations List */}
-<div className="conversations-list">
-{filteredConversations.length > 0 ? (
-filteredConversations.map((conversation) => (
-<div
-key={conversation.id}
-className={`conversation-item ${
-                     conversation.unreadCount ? 'unread' : ''
-                   }`}
-onClick={() => openChat(conversation.id)}
->
-<div
-className="avatar"
-style={{ background: conversation.avatar }}
->
-{conversation.isOnline && (
-<div className="online-indicator"></div>
-)}
-</div>
-<div className="conversation-info">
-<div className="conversation-header">
-<span className="conversation-name">
-{conversation.name}
-</span>
-<span className="conversation-time">
-{conversation.time}
-</span>
-</div>
-<div className="conversation-preview">
-<span className="last-message">
-{conversation.lastMessage}
-</span>
-{conversation.unreadCount && (
-<span className="unread-badge">
-{conversation.unreadCount}
-</span>
-)}
-</div>
-</div>
-</div>
-))
-) : (
-<div className="empty-state">
-<div className="empty-icon">💬</div>
-<div className="empty-text">No conversations found</div>
-<div className="empty-subtext">
-Start a new conversation to begin chatting
-</div>
-</div>
-)}
-</div>
-</>
-)}
+            {/* Messages Area */}
+            <div className="messages-area" ref={messagesAreaRef}>
+              {messages.map((message) => (
+                <div key={message.id} className={`message ${message.sent ? 'sent' : ''}`}>
+                  <div className="message-content">
+                    <div className="message-bubble">
+                      {message.isMusic ? (
+                        <div
+                          className="music-share"
+                          onClick={() => navigate('/play-music', { state: { title: message.musicTitle, artist: message.musicArtist } })}
+                        >
+                          <div className="music-share-art">🎸</div>
+                          <div className="music-share-info">
+                            <div className="music-share-title">{message.musicTitle}</div>
+                            <div className="music-share-artist">{message.musicArtist}</div>
+                          </div>
+                          <div className="play-icon">▶️</div>
+                        </div>
+                      ) : (
+                        <div className="message-text">{message.text}</div>
+                      )}
+                    </div>
+                    <div className="message-time">{message.timestamp}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-{activeChat && (
-<>
-{/* Chat Header */}
-<div className="chat-header">
-<div
-className="chat-avatar"
-style={{ background: currentConversation?.avatar }}
-></div>
-<div className="chat-user-info">
-<div className="chat-user-name">
-{currentConversation?.name}
-</div>
-<div className="chat-user-status">
-{currentConversation?.isOnline ? 'Active now' : 'Offline'}
-</div>
-</div>
-<div className="chat-actions">
-<button className="chat-action-button" onClick={audioCall}>
-📞
-</button>
-<button className="chat-action-button" onClick={videoCall}>
-📹
-</button>
-<button className="chat-action-button" onClick={chatInfo}>
-ℹ️
-</button>
-</div>
-</div>
+            {/* Message Input */}
+            <div className="message-input-container">
+              <div className="message-input-wrapper">
+                <textarea
+                  ref={messageInputRef}
+                  className="message-input"
+                  placeholder="Type a message..."
+                  rows={1}
+                  value={messageInput}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  disabled={sending}
+                />
+                <button
+                  className="send-button"
+                  onClick={sendMessage}
+                  disabled={!messageInput.trim() || sending}
+                >
+                  ➤
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
-{/* Messages Area */}
-<div className="messages-area" ref={messagesAreaRef}>
-<div className="date-separator">Today</div>
-
-{messages.map((message) => (
-<div
-key={message.id}
-className={`message ${message.sent ? 'sent' : ''}`}
->
-<div className="message-avatar"></div>
-<div className="message-content">
-<div className="message-bubble">
-{message.isMusic ? (
-<div
-className="music-share"
-onClick={playSharedMusic}
->
-<div className="music-share-art">🎸</div>
-<div className="music-share-info">
-<div className="music-share-title">
-{message.musicTitle}
-</div>
-<div className="music-share-artist">
-{message.musicArtist}
-</div>
-</div>
-<div className="play-icon">▶️</div>
-</div>
-) : (
-<div className="message-text">{message.text}</div>
-)}
-</div>
-<div className="message-time">{message.time}</div>
-</div>
-</div>
-))}
-</div>
-
-{/* Message Input */}
-<div className="message-input-container">
-<div className="message-input-wrapper">
-<div className="input-actions">
-<button
-className="input-action-button"
-onClick={attachMusic}
->
-🎵
-</button>
-<button
-className="input-action-button"
-onClick={attachImage}
->
-📷
-</button>
-</div>
-<textarea
-ref={messageInputRef}
-className="message-input"
-placeholder="Type a message..."
-rows={1}
-value={messageInput}
-onChange={handleInputChange}
-onKeyPress={handleKeyPress}
-/>
-<button
-className="send-button"
-onClick={handleSendMessage}
-disabled={!messageInput.trim()}
->
-➤
-</button>
-</div>
-</div>
-</>
-)}
-</div>
-
-{/* Bottom Navigation */}
-<div className="bottom-nav">
-<div className="nav-container">
-<div
-className="nav-item"
-onClick={() => handleNavigation('home')}
-title="Home"
->
-<div className="nav-icon">🏠</div>
-</div>
-<div
-className="nav-item"
-onClick={() => handleNavigation('search')}
-title="Discover"
->
-<div className="nav-icon">🔍</div>
-</div>
-<div
-className="nav-item"
-onClick={() => handleNavigation('add')}
-title="Add Music"
->
-<div className="nav-icon">➕</div>
-</div>
-<div
-className="nav-item active"
-onClick={() => handleNavigation('messages')}
-title="Messages"
->
-<div className="nav-icon">💬</div>
-</div>
-<div
-className="nav-item"
-onClick={() => handleNavigation('profile')}
-title="Profile"
->
-<div className="nav-icon">👤</div>
-</div>
-</div>
-</div>
-</div>
-);
+      {/* Bottom Navigation */}
+      <div className="bottom-nav">
+        <div className="nav-container">
+          <div className="nav-item" onClick={() => navigate('/home-feed')}>
+            <div className="nav-icon">🏠</div>
+          </div>
+          <div className="nav-item" onClick={() => navigate('/discover')}>
+            <div className="nav-icon">🔍</div>
+          </div>
+          <div className="nav-item" onClick={() => navigate('/add-music')}>
+            <div className="nav-icon">➕</div>
+          </div>
+          <div className="nav-item active">
+            <div className="nav-icon">💬</div>
+          </div>
+          <div className="nav-item" onClick={() => navigate('/profile')}>
+            <div className="nav-icon">👤</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
