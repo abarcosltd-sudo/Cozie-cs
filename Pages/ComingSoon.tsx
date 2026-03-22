@@ -60,7 +60,7 @@ const ComingSoon = () => {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+    <div className="coming-soon-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div className="bg-shapes">
         <div className="shape"></div>
         <div className="shape"></div>
