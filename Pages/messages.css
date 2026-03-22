@@ -9,13 +9,13 @@ body {
     Ubuntu, Cantarell, sans-serif;
   background: #0a0a0f;
   min-height: 100vh;
-  padding-bottom: 80px;
 }
 
 .page-wrapper {
   max-width: 500px;
   margin: 0 auto;
   animation: fadeIn 0.8s ease-out;
+  padding-bottom: 80px;
 }
 
 @keyframes fadeIn {
