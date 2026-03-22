@@ -276,13 +276,21 @@ export default function Messages() {
       ) + 'px';
     }
   };
-
+  
   const filteredConversations = conversations.filter(conv =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const currentConversation = conversations.find(c => c.id === activeChat);
-
+  
+  if (loading) {
+    return (
+      <div className="page-wrapper">
+        <div className="loading-container">Loading messages...</div>
+      </div>
+    );
+  }
+  
   return (
     <div className="page-wrapper">
       {/* Header Banner */}
