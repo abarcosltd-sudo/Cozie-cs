@@ -9,7 +9,6 @@ body {
     Ubuntu, Cantarell, sans-serif;
   background: #0a0a0f;
   min-height: 100vh;
-  overflow: hidden;
 }
 
 .page-wrapper {
@@ -19,6 +18,7 @@ body {
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.8s ease-out;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
