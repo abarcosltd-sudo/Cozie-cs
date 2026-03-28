@@ -7,7 +7,10 @@ interface TrendingCard {
   title: string;
   artist: string;
   albumArtUrl?: string | null;
-  fileUrl?: string; // Add this to pass audio file URL
+  fileUrl?: string;  // Add this
+  duration?: number; // Optional
+  genre?: string;    // Optional
+  releaseYear?: string; // Optional
 }
 
 interface ChartItem {
@@ -16,7 +19,10 @@ interface ChartItem {
   title: string;
   artist: string;
   albumArtUrl?: string | null;
-  fileUrl?: string; // Add this to pass audio file URL
+  fileUrl?: string;  // Add this
+  duration?: number; // Optional
+  genre?: string;    // Optional
+  releaseYear?: string; // Optional
 }
 
 export default function Discover() {
