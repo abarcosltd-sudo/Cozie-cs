@@ -127,6 +127,11 @@ export default function App() {
         <Route path="/play-music" element={<PlayMusic />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
+        <Route path="/followers" element={<ComingSoon />} />
+        <Route path="/following" element={<ComingSoon />} />
+        <Route path="/edit-profile" element={<ComingSoon />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
+        <Route path="/settings" element={<ComingSoon />} />
       </Routes>
     </BrowserRouter>
   );
