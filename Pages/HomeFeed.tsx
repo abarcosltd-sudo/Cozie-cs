@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './HomeFeed.css';
 
 interface MusicPost {
@@ -17,22 +16,42 @@ interface MusicPost {
   liked: boolean;
 }
 
+interface Comment {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatarUrl?: string;
+  text: string;
+  timestamp: string;
+  createdAt: Date;
+}
+
 export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Comments state
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const token = localStorage.getItem('token');
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
           return;
         }
 
-        const res = await fetch(`https://cozie-kohl.vercel.app/api/posts/feed?_t=${Date.now()}`, {
+        const res = await fetch('https://cozie-kohl.vercel.app/api/posts/feed', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -41,18 +60,16 @@ export default function HomeFeed() {
         }
 
         const data = await res.json();
-        console.log(data)
 
-        // Transform backend data to match our interface
         const formattedPosts = data.posts.map((post: any) => ({
           id: post.id,
           userName: post.userName || 'Unknown User',
           userAvatarUrl: post.userAvatarUrl,
-          postTime: formatTime(post.createdAt), // implement formatTime
+          postTime: formatTime(post.createdAt),
           trackTitle: post.songSnapshot?.title || 'Untitled',
           trackArtist: post.songSnapshot?.artist || 'Unknown Artist',
           caption: post.caption || '', 
-          albumIcon: '🎵', // fallback emoji
+          albumIcon: '🎵',
           albumArtUrl: post.songSnapshot?.albumArtUrl || null,
           likes: post.likes || 0,
           comments: post.comments || 0,
@@ -71,14 +88,12 @@ export default function HomeFeed() {
     fetchFeed();
   }, []);
 
-  // Helper to format timestamp (e.g., "2 hours ago")
   const formatTime = (timestamp: string) => {
     if (!timestamp) return 'Just now';
     
     const now = new Date();
     const past = new Date(timestamp);
     
-    // Check if date is valid
     if (isNaN(past.getTime())) return 'Just now';
     
     const diffMs = now.getTime() - past.getTime();
@@ -92,8 +107,127 @@ export default function HomeFeed() {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
+  const formatCommentTime = (timestamp: Date | string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
+  };
+
+  // Fetch comments for a post
+  const fetchComments = async (postId: string) => {
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/posts/${postId}/comments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch comments');
+      
+      const data = await res.json();
+      // Sort comments by newest first
+      const sortedComments = (data.comments || []).sort((a: Comment, b: Comment) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setComments(sortedComments);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  // Add a new comment
+  const addComment = async () => {
+    if (!commentText.trim() || !selectedPostId || submittingComment) return;
+    
+    setSubmittingComment(true);
+    const newCommentText = commentText.trim();
+    
+    // Optimistic update - add comment locally first
+    const optimisticComment: Comment = {
+      id: `temp-${Date.now()}`,
+      userId: 'current-user',
+      userName: 'You',
+      userAvatarUrl: null,
+      text: newCommentText,
+      timestamp: 'Just now',
+      createdAt: new Date(),
+    };
+    setComments(prev => [optimisticComment, ...prev]);
+    setCommentText('');
+    
+    // Also update the comment count on the post optimistically
+    setPosts(prev => prev.map(post => 
+      post.id === selectedPostId 
+        ? { ...post, comments: post.comments + 1 }
+        : post
+    ));
+    
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/posts/${selectedPostId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: newCommentText }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to add comment');
+      
+      const data = await res.json();
+      
+      // Replace optimistic comment with real one
+      setComments(prev => prev.map(comment => 
+        comment.id === optimisticComment.id 
+          ? { ...data.comment, id: data.commentId, timestamp: 'Just now' }
+          : comment
+      ));
+      
+      // Scroll to top of comments
+      setTimeout(() => {
+        if (commentsEndRef.current) {
+          commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      // Revert optimistic update
+      setComments(prev => prev.filter(comment => comment.id !== optimisticComment.id));
+      setPosts(prev => prev.map(post => 
+        post.id === selectedPostId 
+          ? { ...post, comments: post.comments - 1 }
+          : post
+      ));
+      alert('Failed to add comment. Please try again.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const openComments = (postId: string) => {
+    setSelectedPostId(postId);
+    setShowCommentsModal(true);
+    fetchComments(postId);
+  };
+
+  const closeComments = () => {
+    setShowCommentsModal(false);
+    setSelectedPostId(null);
+    setComments([]);
+    setCommentText('');
+  };
+
   const toggleLike = async (postId: string) => {
-    // Optimistic update
     setPosts(prev =>
       prev.map(post =>
         post.id === postId
@@ -107,14 +241,12 @@ export default function HomeFeed() {
     );
 
     try {
-      const token = localStorage.getItem('token');
       await fetch(`https://cozie-kohl.vercel.app/api/posts/${postId}/like`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (err) {
       console.error('Like failed, reverting...');
-      // Revert on error
       setPosts(prev =>
         prev.map(post =>
           post.id === postId
@@ -131,7 +263,6 @@ export default function HomeFeed() {
 
   const playMusic = (songId: string) => {
     console.log('Playing music from post:', songId);
-    // could open player or navigate to song page
   };
 
   const navigate = (page: string) => {
@@ -151,6 +282,13 @@ export default function HomeFeed() {
       case 'profile':
         window.location.href = '/profile';
         break;
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      addComment();
     }
   };
 
@@ -238,7 +376,10 @@ export default function HomeFeed() {
                     <span className="action-icon">💜</span>
                     <span>{post.likes}</span>
                   </button>
-                  <button className="action-button">
+                  <button 
+                    className="action-button"
+                    onClick={() => openComments(post.id)}
+                  >
                     <span className="action-icon">💬</span>
                     <span>{post.comments}</span>
                   </button>
@@ -256,13 +397,72 @@ export default function HomeFeed() {
         </div>
       </div>
 
+      {/* Comments Modal */}
+      {showCommentsModal && (
+        <div className="comments-modal-overlay" onClick={closeComments}>
+          <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="comments-modal-header">
+              <h3>Comments</h3>
+              <button className="close-modal-btn" onClick={closeComments}>✕</button>
+            </div>
+            
+            <div className="comments-list">
+              {loadingComments ? (
+                <div className="comments-loading">Loading comments...</div>
+              ) : comments.length === 0 ? (
+                <div className="no-comments">No comments yet. Be the first to comment!</div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="comment-item">
+                    <div className="comment-avatar">
+                      {comment.userAvatarUrl ? (
+                        <img src={comment.userAvatarUrl} alt={comment.userName} />
+                      ) : (
+                        <div className="comment-avatar-placeholder" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }}>
+                          {comment.userName.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="comment-content">
+                      <div className="comment-header">
+                        <span className="comment-user">{comment.userName}</span>
+                        <span className="comment-time">{formatCommentTime(comment.createdAt)}</span>
+                      </div>
+                      <div className="comment-text">{comment.text}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={commentsEndRef} />
+            </div>
+            
+            <div className="comment-input-container">
+              <textarea
+                className="comment-textarea"
+                placeholder="Write a comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyPress={handleKeyPress}
+                rows={3}
+              />
+              <button 
+                className="comment-submit-btn"
+                onClick={addComment}
+                disabled={!commentText.trim() || submittingComment}
+              >
+                {submittingComment ? 'Posting...' : 'Post'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Navigation */}
       <BottomNav navigate={navigate} />
     </div>
   );
 }
 
-// BottomNav component extracted for reuse
 function BottomNav({ navigate }: { navigate: (page: string) => void }) {
   return (
     <div className="bottom-nav">
