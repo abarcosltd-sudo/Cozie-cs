@@ -20,7 +20,7 @@ interface Comment {
   id: string;
   userId: string;
   userName: string;
-  userAvatarUrl?: string;
+  userAvatarUrl?: string || null;
   text: string;
   timestamp: string;
   createdAt: Date;
@@ -64,7 +64,7 @@ export default function HomeFeed() {
         const formattedPosts = data.posts.map((post: any) => ({
           id: post.id,
           userName: post.userName || 'Unknown User',
-          userAvatarUrl: post.userAvatarUrl,
+          userAvatarUrl: post.userAvatarUrl || null,
           postTime: formatTime(post.createdAt),
           trackTitle: post.songSnapshot?.title || 'Untitled',
           trackArtist: post.songSnapshot?.artist || 'Unknown Artist',
