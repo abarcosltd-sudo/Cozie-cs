@@ -432,21 +432,6 @@ export default function PlayMusic() {
           </div>
         </div>
 
-        {/* Lyrics Section */}
-        <div className="lyrics-section">
-          <div className="lyrics-header">
-            <div className="lyrics-title">Lyrics</div>
-            <button className="lyrics-toggle" onClick={toggleLyrics}>
-              {isLyricsVisible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {isLyricsVisible && (
-            <div className="lyrics-content">
-              <p className="lyrics-placeholder">Lyrics not available for this track</p>
-            </div>
-          )}
-        </div>
-
         {/* Queue Section */}
         <div className="queue-section">
           <div className="queue-header">
@@ -477,6 +462,21 @@ export default function PlayMusic() {
             ))}
           </div>
         </div>
+
+        {/* Lyrics Section */}
+        <div className="lyrics-section">
+          <div className="lyrics-header">
+            <div className="lyrics-title">Lyrics</div>
+            <button className="lyrics-toggle" onClick={toggleLyrics}>
+              {isLyricsVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {isLyricsVisible && (
+            <div className="lyrics-content">
+              <p className="lyrics-placeholder">Lyrics not available for this track</p>
+            </div>
+          )}
+        </div> 
       </div>
 
       {/* Bottom Navigation */}
