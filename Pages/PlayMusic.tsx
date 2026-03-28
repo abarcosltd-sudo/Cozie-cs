@@ -32,6 +32,8 @@ export default function PlayMusic() {
   const [volume, setVolume] = useState(70);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isLyricsVisible, setIsLyricsVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Get data from navigation state
   const { currentSong, queue: passedQueue, startFromSongId } = location.state || {};
@@ -42,11 +44,9 @@ export default function PlayMusic() {
       try {
         let tracks: MusicTrack[] = [];
         
-        // If queue was passed from navigation (from Discover page), use it
         if (passedQueue && passedQueue.length > 0) {
           tracks = passedQueue;
           
-          // Find the index of the selected song
           let selectedIndex = 0;
           if (startFromSongId) {
             selectedIndex = tracks.findIndex(t => t.id === startFromSongId);
@@ -63,11 +63,9 @@ export default function PlayMusic() {
           return;
         }
         
-        // If a specific song was passed (from share or direct link)
         if (currentSong) {
           setCurrentTrack(currentSong);
           
-          // Fetch trending songs as queue
           const token = localStorage.getItem('token');
           const res = await fetch('https://cozie-kohl.vercel.app/api/music/trending', {
             headers: { Authorization: `Bearer ${token}` }
@@ -75,13 +73,11 @@ export default function PlayMusic() {
           const data = await res.json();
           tracks = data.trending || [];
           
-          // Ensure the selected song is in the queue (add if not present)
           const songExists = tracks.some(t => t.id === currentSong.id);
           if (!songExists) {
             tracks.unshift(currentSong);
           }
           
-          // Find the index of the selected song
           const selectedIndex = tracks.findIndex(t => t.id === currentSong.id);
           setCurrentIndex(selectedIndex);
           setQueue(tracks);
@@ -89,7 +85,6 @@ export default function PlayMusic() {
           return;
         }
         
-        // Fallback: fetch trending songs and play first
         const token = localStorage.getItem('token');
         const res = await fetch('https://cozie-kohl.vercel.app/api/music/trending', {
           headers: { Authorization: `Bearer ${token}` }
@@ -106,6 +101,7 @@ export default function PlayMusic() {
         
       } catch (err) {
         console.error('Error initializing player:', err);
+        setError('Failed to load music');
         setLoading(false);
       }
     };
@@ -166,7 +162,6 @@ export default function PlayMusic() {
 
   const handleEnded = () => {
     if (repeatMode === 'one') {
-      // Repeat current track
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play();
@@ -257,8 +252,8 @@ export default function PlayMusic() {
 
   const toggleRepeat = () => {
     const modes: Array<'off' | 'all' | 'one'> = ['off', 'all', 'one'];
-    const currentIndex = modes.indexOf(repeatMode);
-    setRepeatMode(modes[(currentIndex + 1) % modes.length]);
+    const currentModeIndex = modes.indexOf(repeatMode);
+    setRepeatMode(modes[(currentModeIndex + 1) % modes.length]);
   };
 
   const toggleFavorite = async () => {
@@ -306,6 +301,10 @@ export default function PlayMusic() {
     setIsPlaying(true);
   };
 
+  const toggleLyrics = () => {
+    setIsLyricsVisible(!isLyricsVisible);
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -323,11 +322,11 @@ export default function PlayMusic() {
     );
   }
 
-  if (!currentTrack) {
+  if (error || !currentTrack) {
     return (
       <div className="page-wrapper">
         <div className="error-container">
-          <p>No track available</p>
+          <p>{error || 'No track available'}</p>
           <button onClick={() => navigate(-1)}>Go Back</button>
         </div>
       </div>
@@ -431,6 +430,21 @@ export default function PlayMusic() {
           <div className="volume-slider" onClick={adjustVolume}>
             <div className="volume-fill" style={{ width: `${volume}%` }}></div>
           </div>
+        </div>
+
+        {/* Lyrics Section */}
+        <div className="lyrics-section">
+          <div className="lyrics-header">
+            <div className="lyrics-title">Lyrics</div>
+            <button className="lyrics-toggle" onClick={toggleLyrics}>
+              {isLyricsVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {isLyricsVisible && (
+            <div className="lyrics-content">
+              <p className="lyrics-placeholder">Lyrics not available for this track</p>
+            </div>
+          )}
         </div>
 
         {/* Queue Section */}
