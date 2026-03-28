@@ -19,6 +19,7 @@ export default function PlayMusic() {
   const navigate = useNavigate();
   const location = useLocation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // State
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
@@ -37,6 +38,37 @@ export default function PlayMusic() {
 
   // Get data from navigation state
   const { currentSong, queue: passedQueue, startFromSongId } = location.state || {};
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Handle progress update with interval
+  useEffect(() => {
+    if (isPlaying && audioRef.current) {
+      progressIntervalRef.current = setInterval(() => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      }, 100); // Update every 100ms for smooth progress
+    } else {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [isPlaying]);
 
   // Fetch queue if not passed via navigation
   useEffect(() => {
@@ -136,24 +168,26 @@ export default function PlayMusic() {
   useEffect(() => {
     if (!currentTrack?.fileUrl) return;
 
+    // Reset current time when track changes
+    setCurrentTime(0);
+    
     if (audioRef.current) {
+      const wasPlaying = isPlaying;
       audioRef.current.pause();
       audioRef.current.src = currentTrack.fileUrl;
       audioRef.current.load();
       
-      if (isPlaying) {
+      // Set volume
+      audioRef.current.volume = volume / 100;
+      
+      // Auto-play if it was playing
+      if (wasPlaying) {
         audioRef.current.play().catch(err => console.error('Playback failed:', err));
       }
     }
   }, [currentTrack]);
 
   // Audio event handlers
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
@@ -176,10 +210,11 @@ export default function PlayMusic() {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(err => console.error('Playback failed:', err));
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -217,13 +252,17 @@ export default function PlayMusic() {
 
   const rewind15 = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 15);
+      const newTime = Math.max(0, audioRef.current.currentTime - 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
   };
 
   const forward15 = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 15);
+      const newTime = Math.min(duration, audioRef.current.currentTime + 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
   };
 
@@ -231,8 +270,10 @@ export default function PlayMusic() {
     const progressBar = event.currentTarget;
     const rect = progressBar.getBoundingClientRect();
     const percentage = (event.clientX - rect.left) / rect.width;
-    if (audioRef.current) {
-      audioRef.current.currentTime = percentage * duration;
+    if (audioRef.current && duration) {
+      const newTime = percentage * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
   };
 
@@ -306,13 +347,13 @@ export default function PlayMusic() {
   };
 
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00';
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
+  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (loading) {
     return (
@@ -338,7 +379,6 @@ export default function PlayMusic() {
       {/* Audio Element */}
       <audio
         ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
         onPlay={() => setIsPlaying(true)}
@@ -432,6 +472,21 @@ export default function PlayMusic() {
           </div>
         </div>
 
+        {/* Lyrics Section */}
+        <div className="lyrics-section">
+          <div className="lyrics-header">
+            <div className="lyrics-title">Lyrics</div>
+            <button className="lyrics-toggle" onClick={toggleLyrics}>
+              {isLyricsVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {isLyricsVisible && (
+            <div className="lyrics-content">
+              <p className="lyrics-placeholder">Lyrics not available for this track</p>
+            </div>
+          )}
+        </div>
+
         {/* Queue Section */}
         <div className="queue-section">
           <div className="queue-header">
@@ -462,21 +517,6 @@ export default function PlayMusic() {
             ))}
           </div>
         </div>
-
-        {/* Lyrics Section */}
-        <div className="lyrics-section">
-          <div className="lyrics-header">
-            <div className="lyrics-title">Lyrics</div>
-            <button className="lyrics-toggle" onClick={toggleLyrics}>
-              {isLyricsVisible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {isLyricsVisible && (
-            <div className="lyrics-content">
-              <p className="lyrics-placeholder">Lyrics not available for this track</p>
-            </div>
-          )}
-        </div> 
       </div>
 
       {/* Bottom Navigation */}
