@@ -84,7 +84,7 @@ export default function Preference() {
       }));
   
       // Navigate to next step (profile setup)
-      navigate('/profilesetup');
+      navigate('/profile-setup');
     } catch (error: any) {
       console.error('Save preferences error:', error);
       // Display error to user (adjust based on your UI)
