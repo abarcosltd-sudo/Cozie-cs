@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-//import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './HomeFeed.css';
 
 interface MusicPost {
@@ -32,7 +32,7 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  //const navigate = useNavigate();
+  const navigate = useNavigate();
   // Comments state
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -327,22 +327,22 @@ export default function HomeFeed() {
     }
   };
   
-  const navigate = (page: string) => {
+  const navigateToPage = (page: string) => {
     switch (page) {
       case 'home':
-        window.location.href = '/home-feed';
+        navigate('/home-feed');
         break;
       case 'search':
-        window.location.href = '/discover';
+        navigate('/discover');
         break;
       case 'add':
-        window.location.href = '/share-music';
+        navigate('/share-music');
         break;
       case 'messages':
-        window.location.href = '/messages';
+        navigate('/messages');
         break;
       case 'profile':
-        window.location.href = '/profile';
+        navigate('/profile');
         break;
     }
   };
@@ -529,19 +529,19 @@ function BottomNav({ navigate }: { navigate: (page: string) => void }) {
   return (
     <div className="bottom-nav">
       <div className="nav-container">
-        <div className="nav-item active" onClick={() => navigate('home')}>
+        <div className="nav-item active" onClick={() => navigateToPage('home')}>
           <div className="nav-icon">🏠</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('search')}>
+        <div className="nav-item" onClick={() => navigateToPage('search')}>
           <div className="nav-icon">🔍</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('add')}>
+        <div className="nav-item" onClick={() => navigateToPage('add')}>
           <div className="nav-icon">➕</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('messages')}>
+        <div className="nav-item" onClick={() => navigateToPage('messages')}>
           <div className="nav-icon">💬</div>
         </div>
-        <div className="nav-item" onClick={() => navigate('profile')}>
+        <div className="nav-item" onClick={() => navigateToPage('profile')}>
           <div className="nav-icon">👤</div>
         </div>
       </div>
