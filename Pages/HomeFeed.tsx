@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import './HomeFeed.css';
 
 interface MusicPost {
@@ -32,7 +32,7 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   // Comments state
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
