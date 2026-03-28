@@ -20,6 +20,7 @@ export default function PlayMusic() {
   const location = useLocation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isSeeking, setIsSeeking] = useState(false);
   
   // State
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
@@ -50,9 +51,9 @@ export default function PlayMusic() {
 
   // Handle progress update with interval
   useEffect(() => {
-    if (isPlaying && audioRef.current) {
+    if (isPlaying && audioRef.current && !isSeeking) {
       progressIntervalRef.current = setInterval(() => {
-        if (audioRef.current) {
+        if (audioRef.current && !isSeeking) {
           setCurrentTime(audioRef.current.currentTime);
         }
       }, 100); // Update every 100ms for smooth progress
@@ -68,7 +69,7 @@ export default function PlayMusic() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [isPlaying]);
+  }, [isPlaying, isSeeking]);
 
   // Fetch queue if not passed via navigation
   useEffect(() => {
@@ -168,8 +169,8 @@ export default function PlayMusic() {
   useEffect(() => {
     if (!currentTrack?.fileUrl) return;
 
-    // Reset current time when track changes
     setCurrentTime(0);
+    setDuration(0);
     
     if (audioRef.current) {
       const wasPlaying = isPlaying;
@@ -182,7 +183,13 @@ export default function PlayMusic() {
       
       // Auto-play if it was playing
       if (wasPlaying) {
-        audioRef.current.play().catch(err => console.error('Playback failed:', err));
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.error('Playback failed:', err);
+            setIsPlaying(false);
+          });
+        }
       }
     }
   }, [currentTrack]);
@@ -191,6 +198,14 @@ export default function PlayMusic() {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
+      console.log('Duration loaded:', audioRef.current.duration);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    // Only update if not seeking to avoid jumps
+    if (audioRef.current && !isSeeking) {
+      setCurrentTime(audioRef.current.currentTime);
     }
   };
 
@@ -212,8 +227,17 @@ export default function PlayMusic() {
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play().catch(err => console.error('Playback failed:', err));
-        setIsPlaying(true);
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(err => {
+              console.error('Playback failed:', err);
+              setIsPlaying(false);
+            });
+        }
       }
     }
   };
@@ -266,14 +290,36 @@ export default function PlayMusic() {
     }
   };
 
-  const seekTo = (event: React.MouseEvent<HTMLDivElement>) => {
+  // Seek functionality - start seeking
+  const startSeek = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    setIsSeeking(true);
+    handleSeek(event);
+  };
+
+  // Handle seeking - update current time while dragging
+  const handleSeek = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const progressBar = event.currentTarget;
     const rect = progressBar.getBoundingClientRect();
-    const percentage = (event.clientX - rect.left) / rect.width;
+    let clientX: number;
+    
+    if ('touches' in event) {
+      // Touch event
+      clientX = event.touches[0].clientX;
+    } else {
+      // Mouse event
+      clientX = event.clientX;
+    }
+    
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newTime = percentage * duration;
+    setCurrentTime(newTime);
+  };
+
+  // End seeking - set the actual audio time
+  const endSeek = () => {
     if (audioRef.current && duration) {
-      const newTime = percentage * duration;
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+      audioRef.current.currentTime = currentTime;
+      setIsSeeking(false);
     }
   };
 
@@ -380,6 +426,7 @@ export default function PlayMusic() {
       <audio
         ref={audioRef}
         onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -429,9 +476,18 @@ export default function PlayMusic() {
           </button>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - Updated with seek functionality */}
         <div className="progress-section">
-          <div className="progress-bar" onClick={seekTo}>
+          <div 
+            className="progress-bar" 
+            onMouseDown={startSeek}
+            onMouseMove={handleSeek}
+            onMouseUp={endSeek}
+            onMouseLeave={endSeek}
+            onTouchStart={startSeek}
+            onTouchMove={handleSeek}
+            onTouchEnd={endSeek}
+          >
             <div className="progress-fill" style={{ width: `${progressPercentage}%` }}>
               <div className="progress-handle"></div>
             </div>
@@ -472,21 +528,6 @@ export default function PlayMusic() {
           </div>
         </div>
 
-        {/* Lyrics Section */}
-        <div className="lyrics-section">
-          <div className="lyrics-header">
-            <div className="lyrics-title">Lyrics</div>
-            <button className="lyrics-toggle" onClick={toggleLyrics}>
-              {isLyricsVisible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {isLyricsVisible && (
-            <div className="lyrics-content">
-              <p className="lyrics-placeholder">Lyrics not available for this track</p>
-            </div>
-          )}
-        </div>
-
         {/* Queue Section */}
         <div className="queue-section">
           <div className="queue-header">
@@ -517,6 +558,22 @@ export default function PlayMusic() {
             ))}
           </div>
         </div>
+        
+        {/* Lyrics Section */}
+        <div className="lyrics-section">
+          <div className="lyrics-header">
+            <div className="lyrics-title">Lyrics</div>
+            <button className="lyrics-toggle" onClick={toggleLyrics}>
+              {isLyricsVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {isLyricsVisible && (
+            <div className="lyrics-content">
+              <p className="lyrics-placeholder">Lyrics not available for this track</p>
+            </div>
+          )}
+        </div>
+        
       </div>
 
       {/* Bottom Navigation */}
