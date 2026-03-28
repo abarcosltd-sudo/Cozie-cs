@@ -179,7 +179,7 @@ const ComingSoon = () => {
         </div>
 
         {/* Back Button */}
-        <a href="/" className="back-button">
+        <a href="/home-feed" className="back-button">
           ← Back to Home
         </a>
       </div>
