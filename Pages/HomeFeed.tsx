@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './HomeFeed.css';
 
 interface MusicPost {
@@ -11,6 +12,7 @@ interface MusicPost {
   caption?: string;
   albumIcon?: string; 
   albumArtUrl?: string; 
+  fileUrl?: string | null;
   likes: number;
   comments: number;
   liked: boolean;
@@ -30,7 +32,7 @@ export default function HomeFeed() {
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const navigate = useNavigate();
   // Comments state
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -267,26 +269,64 @@ export default function HomeFeed() {
     }
   };
 
-  const playMusic = (songId: string) => {
+  const playMusic = async (songId: string) => {
     console.log('Playing music from post:', songId);
-    // navigate('/play-music', {
-    //   state: {
-    //     currentSong: {
-    //       id: song.id,
-    //       title: song.title,
-    //       artist: song.artist,
-    //       albumArtUrl: song.albumArtUrl,
-    //       fileUrl: song.fileUrl,
-    //       duration: song.duration,
-    //       genre: song.genre,
-    //       releaseYear: song.releaseYear
-    //     },
-    //     queue: trending, // Pass the entire trending list as queue
-    //     startFromSongId: song.id // Tell player which song to start from
-    //   }
-    // });
+    
+    try {
+      // Fetch song details from the API
+      const token = localStorage.getItem('token');
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/music/${songId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (res.ok) {
+        const songData = await res.json();
+        
+        navigate('/play-music', {
+          state: {
+            currentSong: {
+              id: songId,
+              title: songData.title,
+              artist: songData.artist,
+              albumArtUrl: songData.albumArtUrl,
+              fileUrl: songData.fileUrl,
+              duration: songData.duration,
+              genre: songData.genre,
+              releaseYear: songData.releaseYear,
+            }
+          }
+        });
+      } else {
+        // Fallback: use data from the post if available
+        const post = posts.find(p => p.id === songId);
+        navigate('/play-music', {
+          state: {
+            currentSong: {
+              id: songId,
+              title: post?.trackTitle || 'Unknown Title',
+              artist: post?.trackArtist || 'Unknown Artist',
+              albumArtUrl: post?.albumArtUrl || null,
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching song:', error);
+      // Fallback navigation with available data
+      const post = posts.find(p => p.id === songId);
+      navigate('/play-music', {
+        state: {
+          currentSong: {
+            id: songId,
+            title: post?.trackTitle || 'Unknown Title',
+            artist: post?.trackArtist || 'Unknown Artist',
+            albumArtUrl: post?.albumArtUrl || null,
+          }
+        }
+      });
+    }
   };
-
+  
   const navigate = (page: string) => {
     switch (page) {
       case 'home':
