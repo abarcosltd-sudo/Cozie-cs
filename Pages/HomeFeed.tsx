@@ -4,6 +4,7 @@ import './HomeFeed.css';
 
 interface MusicPost {
   id: string;
+  songId: string;
   userName: string;
   userAvatarUrl?: string | null;
   postTime: string; 
@@ -66,6 +67,7 @@ export default function HomeFeed() {
 
         const formattedPosts = data.posts.map((post: any) => ({
           id: post.id,
+          songId: post.songId,
           userName: post.userName || 'Unknown User',
           userAvatarUrl: post.userAvatarUrl || null,
           postTime: formatTime(post.createdAt),
@@ -411,7 +413,7 @@ export default function HomeFeed() {
                   <div className="post-menu">⋯</div>
                 </div>
 
-                <div className="album-art" onClick={() => playMusic(post.id)}>
+                <div className="album-art" onClick={() => playMusic(post.songId)}>
                   {post.albumArtUrl ? (
                     <img src={post.albumArtUrl} alt={post.trackTitle} className="album-image" />
                   ) : (
