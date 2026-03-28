@@ -87,32 +87,45 @@ export default function Discover() {
     }
   };
 
-  // Updated: Navigate to play-music page with song data
   const handlePlayTrending = (song: TrendingCard) => {
+  // Pass the selected song as the current track
     navigate('/play-music', {
       state: {
-        songId: song.id,
-        title: song.title,
-        artist: song.artist,
-        albumArtUrl: song.albumArtUrl,
-        fileUrl: song.fileUrl
+        currentSong: {
+          id: song.id,
+          title: song.title,
+          artist: song.artist,
+          albumArtUrl: song.albumArtUrl,
+          fileUrl: song.fileUrl,
+          duration: song.duration,
+          genre: song.genre,
+          releaseYear: song.releaseYear
+        },
+        queue: trending, // Pass the entire trending list as queue
+        startFromSongId: song.id // Tell player which song to start from
       }
     });
   };
 
-  // Updated: Navigate to play-music page with song data
   const handlePlayChart = (song: ChartItem) => {
+    // Pass the selected song as the current track
     navigate('/play-music', {
       state: {
-        songId: song.id,
-        title: song.title,
-        artist: song.artist,
-        albumArtUrl: song.albumArtUrl,
-        fileUrl: song.fileUrl
+        currentSong: {
+          id: song.id,
+          title: song.title,
+          artist: song.artist,
+          albumArtUrl: song.albumArtUrl,
+          fileUrl: song.fileUrl,
+          duration: song.duration,
+          genre: song.genre,
+          releaseYear: song.releaseYear
+        },
+        queue: charts, // Pass the entire charts list as queue
+        startFromSongId: song.id // Tell player which song to start from
       }
     });
   };
-
   const navigateToPage = (page: string) => {
     switch (page) {
       case 'home':
