@@ -129,7 +129,10 @@ export default function HomeFeed() {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      if (!res.ok) throw new Error('Failed to fetch comments');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to fetch comments');
+      }
       
       const data = await res.json();
       // Sort comments by newest first
@@ -181,7 +184,10 @@ export default function HomeFeed() {
         body: JSON.stringify({ text: newCommentText }),
       });
       
-      if (!res.ok) throw new Error('Failed to add comment');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to add comment');
+      }
       
       const data = await res.json();
       
@@ -416,10 +422,10 @@ export default function HomeFeed() {
                   <div key={comment.id} className="comment-item">
                     <div className="comment-avatar">
                       {comment.userAvatarUrl ? (
-                        <img src={comment.userAvatarUrl} alt={comment.userName} />
+                        <img src={comment.userAvatarUrl} alt={comment.userName || 'User'} />
                       ) : (
                         <div className="comment-avatar-placeholder" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }}>
-                          {comment.userName.charAt(0)}
+                          {comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
                         </div>
                       )}
                     </div>
