@@ -16,7 +16,7 @@ interface MusicTrack {
 }
 
 export default function PlayMusic() {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
   const location = useLocation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -121,28 +121,6 @@ export default function PlayMusic() {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`https://cozie-kohl.vercel.app/api/users/favorites/${currentTrack.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setIsFavorited(data.isFavorited);
-        }
-      } catch (err) {
-        console.error('Error checking favorite:', err);
-      }
-    };
-    
-    checkFavorite();
-  }, [currentTrack]);
-  // Check if current track is favorited
-  useEffect(() => {
-    const checkFavorite = async () => {
-      if (!currentTrack) return;
-      
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`https://cozie-kohl.vercel.app/api/users/favorites/${currentTrack.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -158,7 +136,6 @@ export default function PlayMusic() {
     checkFavorite();
   }, [currentTrack]);
 
-  
   // Update audio source when current track changes
   useEffect(() => {
     if (!currentTrack?.fileUrl) return;
@@ -173,60 +150,6 @@ export default function PlayMusic() {
       }
     }
   }, [currentTrack]);
-
-  // Play next track function
-  const playNext = () => {
-    if (queue.length === 0) return;
-    
-    let newIndex;
-    if (repeatMode === 'all') {
-      newIndex = (currentIndex + 1) % queue.length;
-    } else if (isShuffle) {
-      newIndex = Math.floor(Math.random() * queue.length);
-    } else {
-      newIndex = (currentIndex + 1) % queue.length;
-    }
-    
-    setCurrentIndex(newIndex);
-    setCurrentTrack(queue[newIndex]);
-    setIsPlaying(true);
-  };
-
-  // Play previous track function
-  const playPrevious = () => {
-    if (queue.length === 0) return;
-    
-    let newIndex;
-    if (isShuffle) {
-      newIndex = Math.floor(Math.random() * queue.length);
-    } else {
-      newIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
-    }
-    
-    setCurrentIndex(newIndex);
-    setCurrentTrack(queue[newIndex]);
-    setIsPlaying(true);
-  };
-
-  // Handle audio ended
-  const handleEnded = () => {
-    if (repeatMode === 'one') {
-      // Repeat current track
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-    } else {
-      playNext();
-    }
-  };
-
-  // Play a specific queue item
-  const playQueueItem = (index: number) => {
-    setCurrentIndex(index);
-    setCurrentTrack(queue[index]);
-    setIsPlaying(true);
-  };
 
   // Audio event handlers
   const handleTimeUpdate = () => {
@@ -249,7 +172,6 @@ export default function PlayMusic() {
         audioRef.current.play();
       }
     } else {
-      // Play next track
       playNext();
     }
   };
@@ -384,14 +306,6 @@ export default function PlayMusic() {
     setIsPlaying(true);
   };
 
-  const toggleLyrics = () => {
-    setIsLyricsVisible(!isLyricsVisible);
-  };
-
-  const goBack = () => {
-    navigate(-1);
-  };
-
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -409,12 +323,12 @@ export default function PlayMusic() {
     );
   }
 
-  if (error || !currentTrack) {
+  if (!currentTrack) {
     return (
       <div className="page-wrapper">
         <div className="error-container">
-          <p>Error: {error || 'No track available'}</p>
-          <button onClick={goBack}>Go Back</button>
+          <p>No track available</p>
+          <button onClick={() => navigate(-1)}>Go Back</button>
         </div>
       </div>
     );
@@ -434,7 +348,7 @@ export default function PlayMusic() {
 
       {/* Header Bar */}
       <div className="header-bar">
-        <div className="back-button" onClick={goBack}>←</div>
+        <div className="back-button" onClick={() => navigate(-1)}>←</div>
         <div className="header-title">Now Playing</div>
         <div className="menu-button">⋯</div>
       </div>
@@ -548,21 +462,6 @@ export default function PlayMusic() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Lyrics Section */}
-        <div className="lyrics-section">
-          <div className="lyrics-header">
-            <div className="lyrics-title">Lyrics</div>
-            <button className="lyrics-toggle" onClick={toggleLyrics}>
-              {isLyricsVisible ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {isLyricsVisible && (
-            <div className="lyrics-content">
-              <p className="lyrics-placeholder">Lyrics not available for this track</p>
-            </div>
-          )}
         </div>
       </div>
 
