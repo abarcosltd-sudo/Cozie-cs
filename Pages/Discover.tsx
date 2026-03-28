@@ -157,7 +157,7 @@ export default function Discover() {
       <div className="page-wrapper">
         <div className="discover-container">
           <div className="feed-header">
-            <div className="header-logo">COZIE</div>
+            <div className="header-logo">COOZIE</div>
           </div>
           <div className="loading">Loading discover...</div>
         </div>
@@ -171,7 +171,7 @@ export default function Discover() {
       <div className="page-wrapper">
         <div className="discover-container">
           <div className="feed-header">
-            <div className="header-logo">COZIE</div>
+            <div className="header-logo">COOZIE</div>
           </div>
           <div className="error">Error: {error}</div>
         </div>
