@@ -16,7 +16,7 @@ interface MusicTrack {
 }
 
 export default function PlayMusic() {
-  const navigate = useNavigate();
+   const navigate = useNavigate();
   const location = useLocation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -30,57 +30,88 @@ export default function PlayMusic() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(70);
-  const [isLyricsVisible, setIsLyricsVisible] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Get song from navigation state or URL params
-  const songFromState = location.state as MusicTrack;
+  // Get data from navigation state
+  const { currentSong, queue: passedQueue, startFromSongId } = location.state || {};
 
-  // Fetch queue and current track
+  // Fetch queue if not passed via navigation
   useEffect(() => {
-    const fetchQueue = async () => {
+    const initializePlayer = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Not authenticated');
+        let tracks: MusicTrack[] = [];
+        
+        // If queue was passed from navigation (from Discover page), use it
+        if (passedQueue && passedQueue.length > 0) {
+          tracks = passedQueue;
+          
+          // Find the index of the selected song
+          let selectedIndex = 0;
+          if (startFromSongId) {
+            selectedIndex = tracks.findIndex(t => t.id === startFromSongId);
+          } else if (currentSong) {
+            selectedIndex = tracks.findIndex(t => t.id === currentSong.id);
+          }
+          
+          if (selectedIndex === -1) selectedIndex = 0;
+          
+          setCurrentIndex(selectedIndex);
+          setCurrentTrack(tracks[selectedIndex]);
+          setQueue(tracks);
           setLoading(false);
           return;
         }
-
-        // Fetch trending songs for queue
+        
+        // If a specific song was passed (from share or direct link)
+        if (currentSong) {
+          setCurrentTrack(currentSong);
+          
+          // Fetch trending songs as queue
+          const token = localStorage.getItem('token');
+          const res = await fetch('https://cozie-kohl.vercel.app/api/music/trending', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          tracks = data.trending || [];
+          
+          // Ensure the selected song is in the queue (add if not present)
+          const songExists = tracks.some(t => t.id === currentSong.id);
+          if (!songExists) {
+            tracks.unshift(currentSong);
+          }
+          
+          // Find the index of the selected song
+          const selectedIndex = tracks.findIndex(t => t.id === currentSong.id);
+          setCurrentIndex(selectedIndex);
+          setQueue(tracks);
+          setLoading(false);
+          return;
+        }
+        
+        // Fallback: fetch trending songs and play first
+        const token = localStorage.getItem('token');
         const res = await fetch('https://cozie-kohl.vercel.app/api/music/trending', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (!res.ok) throw new Error('Failed to fetch queue');
-
         const data = await res.json();
-        const tracks: MusicTrack[] = data.trending || [];
-        console.log(tracks)
-        // Set queue
-        setQueue(tracks);
-
-        // Set current track (from navigation or first in queue)
-        if (songFromState && songFromState.id) {
-          setCurrentTrack(songFromState);
-          setCurrentIndex(tracks.findIndex(t => t.id === songFromState.id));
-        } else if (tracks.length > 0) {
+        tracks = data.trending || [];
+        
+        if (tracks.length > 0) {
           setCurrentTrack(tracks[0]);
+          setQueue(tracks);
           setCurrentIndex(0);
         }
-
         setLoading(false);
-      } catch (err: any) {
-        console.error('Error fetching queue:', err);
-        setError(err.message);
+        
+      } catch (err) {
+        console.error('Error initializing player:', err);
         setLoading(false);
       }
     };
-
-    fetchQueue();
-  }, [songFromState]);
+    
+    initializePlayer();
+  }, [currentSong, passedQueue, startFromSongId]);
 
   // Check if current track is favorited
   useEffect(() => {
@@ -104,8 +135,31 @@ export default function PlayMusic() {
     
     checkFavorite();
   }, [currentTrack]);
+  // Check if current track is favorited
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!currentTrack) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`https://cozie-kohl.vercel.app/api/users/favorites/${currentTrack.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setIsFavorited(data.isFavorited);
+        }
+      } catch (err) {
+        console.error('Error checking favorite:', err);
+      }
+    };
+    
+    checkFavorite();
+  }, [currentTrack]);
 
-  // Audio element setup
+  
+  // Update audio source when current track changes
   useEffect(() => {
     if (!currentTrack?.fileUrl) return;
 
@@ -118,13 +172,61 @@ export default function PlayMusic() {
         audioRef.current.play().catch(err => console.error('Playback failed:', err));
       }
     }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
   }, [currentTrack]);
+
+  // Play next track function
+  const playNext = () => {
+    if (queue.length === 0) return;
+    
+    let newIndex;
+    if (repeatMode === 'all') {
+      newIndex = (currentIndex + 1) % queue.length;
+    } else if (isShuffle) {
+      newIndex = Math.floor(Math.random() * queue.length);
+    } else {
+      newIndex = (currentIndex + 1) % queue.length;
+    }
+    
+    setCurrentIndex(newIndex);
+    setCurrentTrack(queue[newIndex]);
+    setIsPlaying(true);
+  };
+
+  // Play previous track function
+  const playPrevious = () => {
+    if (queue.length === 0) return;
+    
+    let newIndex;
+    if (isShuffle) {
+      newIndex = Math.floor(Math.random() * queue.length);
+    } else {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
+    }
+    
+    setCurrentIndex(newIndex);
+    setCurrentTrack(queue[newIndex]);
+    setIsPlaying(true);
+  };
+
+  // Handle audio ended
+  const handleEnded = () => {
+    if (repeatMode === 'one') {
+      // Repeat current track
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+    } else {
+      playNext();
+    }
+  };
+
+  // Play a specific queue item
+  const playQueueItem = (index: number) => {
+    setCurrentIndex(index);
+    setCurrentTrack(queue[index]);
+    setIsPlaying(true);
+  };
 
   // Audio event handlers
   const handleTimeUpdate = () => {
