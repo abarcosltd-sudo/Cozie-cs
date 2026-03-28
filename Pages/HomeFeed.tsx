@@ -525,7 +525,7 @@ export default function HomeFeed() {
   );
 }
 
-function BottomNav({ navigate }: { navigate: (page: string) => void }) {
+function BottomNav({ navigateToPage }: { navigateToPage: (page: string) => void }) {
   return (
     <div className="bottom-nav">
       <div className="nav-container">
