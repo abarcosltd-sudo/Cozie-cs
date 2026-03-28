@@ -5,13 +5,13 @@ import './HomeFeed.css';
 interface MusicPost {
   id: string;
   userName: string;
-  userAvatarUrl?: string; 
+  userAvatarUrl?: string | null;
   postTime: string; 
   trackTitle: string;
   trackArtist: string;
   caption?: string;
   albumIcon?: string; 
-  albumArtUrl?: string; 
+  albumArtUrl?: string | null;
   fileUrl?: string | null;
   likes: number;
   comments: number;
@@ -25,14 +25,15 @@ interface Comment {
   userAvatarUrl?: string | null;
   text: string;
   timestamp: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export default function HomeFeed() {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<MusicPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  
   // Comments state
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -73,6 +74,7 @@ export default function HomeFeed() {
           caption: post.caption || '', 
           albumIcon: '🎵',
           albumArtUrl: post.songSnapshot?.albumArtUrl || null,
+          fileUrl: post.songSnapshot?.fileUrl || null,
           likes: post.likes || 0,
           comments: post.comments || 0,
           liked: post.likedByUser || false,
@@ -123,7 +125,6 @@ export default function HomeFeed() {
     return `${diffDays}d`;
   };
 
-  // Fetch comments for a post
   const fetchComments = async (postId: string) => {
     setLoadingComments(true);
     try {
@@ -137,26 +138,24 @@ export default function HomeFeed() {
       }
       
       const data = await res.json();
-      // Sort comments by newest first
       const sortedComments = (data.comments || []).sort((a: Comment, b: Comment) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setComments(sortedComments);
     } catch (err) {
       console.error('Error fetching comments:', err);
+      setComments([]);
     } finally {
       setLoadingComments(false);
     }
   };
 
-  // Add a new comment
   const addComment = async () => {
     if (!commentText.trim() || !selectedPostId || submittingComment) return;
     
     setSubmittingComment(true);
     const newCommentText = commentText.trim();
     
-    // Optimistic update - add comment locally first
     const optimisticComment: Comment = {
       id: `temp-${Date.now()}`,
       userId: 'current-user',
@@ -169,10 +168,9 @@ export default function HomeFeed() {
     setComments(prev => [optimisticComment, ...prev]);
     setCommentText('');
     
-    // Also update the comment count on the post optimistically
     setPosts(prev => prev.map(post => 
       post.id === selectedPostId 
-        ? { ...post, comments: post.comments + 1 }
+        ? { ...post, comments: (post.comments || 0) + 1 }
         : post
     ));
     
@@ -193,14 +191,17 @@ export default function HomeFeed() {
       
       const data = await res.json();
       
-      // Replace optimistic comment with real one
       setComments(prev => prev.map(comment => 
         comment.id === optimisticComment.id 
-          ? { ...data.comment, id: data.commentId, timestamp: 'Just now' }
+          ? { 
+              ...data.comment, 
+              id: data.commentId, 
+              timestamp: 'Just now',
+              createdAt: new Date()
+            }
           : comment
       ));
       
-      // Scroll to top of comments
       setTimeout(() => {
         if (commentsEndRef.current) {
           commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -209,11 +210,10 @@ export default function HomeFeed() {
       
     } catch (err) {
       console.error('Error adding comment:', err);
-      // Revert optimistic update
       setComments(prev => prev.filter(comment => comment.id !== optimisticComment.id));
       setPosts(prev => prev.map(post => 
         post.id === selectedPostId 
-          ? { ...post, comments: post.comments - 1 }
+          ? { ...post, comments: (post.comments || 0) - 1 }
           : post
       ));
       alert('Failed to add comment. Please try again.');
@@ -273,7 +273,6 @@ export default function HomeFeed() {
     console.log('Playing music from post:', songId);
     
     try {
-      // Fetch song details from the API
       const token = localStorage.getItem('token');
       const res = await fetch(`https://cozie-kohl.vercel.app/api/music/${songId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -286,18 +285,18 @@ export default function HomeFeed() {
           state: {
             currentSong: {
               id: songId,
-              title: songData.title,
-              artist: songData.artist,
-              albumArtUrl: songData.albumArtUrl,
-              fileUrl: songData.fileUrl,
-              duration: songData.duration,
-              genre: songData.genre,
-              releaseYear: songData.releaseYear,
-            }
+              title: songData.song?.title || 'Unknown Title',
+              artist: songData.song?.artist || 'Unknown Artist',
+              albumArtUrl: songData.song?.albumArtUrl || null,
+              fileUrl: songData.song?.fileUrl || null,
+              duration: songData.song?.duration,
+              genre: songData.song?.genre,
+              releaseYear: songData.song?.releaseYear,
+            },
+            queue: songData.queue || []
           }
         });
       } else {
-        // Fallback: use data from the post if available
         const post = posts.find(p => p.id === songId);
         navigate('/play-music', {
           state: {
@@ -306,13 +305,13 @@ export default function HomeFeed() {
               title: post?.trackTitle || 'Unknown Title',
               artist: post?.trackArtist || 'Unknown Artist',
               albumArtUrl: post?.albumArtUrl || null,
+              fileUrl: post?.fileUrl || null,
             }
           }
         });
       }
     } catch (error) {
       console.error('Error fetching song:', error);
-      // Fallback navigation with available data
       const post = posts.find(p => p.id === songId);
       navigate('/play-music', {
         state: {
@@ -321,13 +320,14 @@ export default function HomeFeed() {
             title: post?.trackTitle || 'Unknown Title',
             artist: post?.trackArtist || 'Unknown Artist',
             albumArtUrl: post?.albumArtUrl || null,
+            fileUrl: post?.fileUrl || null,
           }
         }
       });
     }
   };
   
-  const navigateToPage = (page: string) => {
+  const handleNavigation = (page: string) => {
     switch (page) {
       case 'home':
         navigate('/home-feed');
@@ -362,7 +362,7 @@ export default function HomeFeed() {
           <div className="notification-icon">🔔</div>
         </div>
         <div className="feed-content loading">Loading feed...</div>
-        <BottomNav navigate={navigate} />
+        <BottomNav onNavigate={handleNavigation} />
       </div>
     );
   }
@@ -375,7 +375,7 @@ export default function HomeFeed() {
           <div className="notification-icon">🔔</div>
         </div>
         <div className="feed-content error">Error: {error}</div>
-        <BottomNav navigate={navigate} />
+        <BottomNav onNavigate={handleNavigation} />
       </div>
     );
   }
@@ -383,13 +383,11 @@ export default function HomeFeed() {
   return (
     <div className="homefeed-page">
       <div className="homefeed-wrapper">
-        {/* Top Header */}
         <div className="feed-header">
           <div className="header-logo">COOZIE</div>
           <div className="notification-icon">🔔</div>
         </div>
 
-        {/* Posts Container */}
         <div className="feed-content">
           {posts.length === 0 ? (
             <div className="no-posts">No posts yet – share some music!</div>
@@ -519,29 +517,28 @@ export default function HomeFeed() {
         </div>
       )}
 
-      {/* Bottom Navigation */}
-      <BottomNav navigate={navigate} />
+      <BottomNav onNavigate={handleNavigation} />
     </div>
   );
 }
 
-function BottomNav({ navigateToPage }: { navigateToPage: (page: string) => void }) {
+function BottomNav({ onNavigate }: { onNavigate: (page: string) => void }) {
   return (
     <div className="bottom-nav">
       <div className="nav-container">
-        <div className="nav-item active" onClick={() => navigateToPage('home')}>
+        <div className="nav-item active" onClick={() => onNavigate('home')}>
           <div className="nav-icon">🏠</div>
         </div>
-        <div className="nav-item" onClick={() => navigateToPage('search')}>
+        <div className="nav-item" onClick={() => onNavigate('search')}>
           <div className="nav-icon">🔍</div>
         </div>
-        <div className="nav-item" onClick={() => navigateToPage('add')}>
+        <div className="nav-item" onClick={() => onNavigate('add')}>
           <div className="nav-icon">➕</div>
         </div>
-        <div className="nav-item" onClick={() => navigateToPage('messages')}>
+        <div className="nav-item" onClick={() => onNavigate('messages')}>
           <div className="nav-icon">💬</div>
         </div>
-        <div className="nav-item" onClick={() => navigateToPage('profile')}>
+        <div className="nav-item" onClick={() => onNavigate('profile')}>
           <div className="nav-icon">👤</div>
         </div>
       </div>
