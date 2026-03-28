@@ -20,7 +20,7 @@ interface Comment {
   id: string;
   userId: string;
   userName: string;
-  userAvatarUrl?: string || null;
+  userAvatarUrl?: string | null;
   text: string;
   timestamp: string;
   createdAt: Date;
