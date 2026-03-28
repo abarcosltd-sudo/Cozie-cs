@@ -269,6 +269,22 @@ export default function HomeFeed() {
 
   const playMusic = (songId: string) => {
     console.log('Playing music from post:', songId);
+    // navigate('/play-music', {
+    //   state: {
+    //     currentSong: {
+    //       id: song.id,
+    //       title: song.title,
+    //       artist: song.artist,
+    //       albumArtUrl: song.albumArtUrl,
+    //       fileUrl: song.fileUrl,
+    //       duration: song.duration,
+    //       genre: song.genre,
+    //       releaseYear: song.releaseYear
+    //     },
+    //     queue: trending, // Pass the entire trending list as queue
+    //     startFromSongId: song.id // Tell player which song to start from
+    //   }
+    // });
   };
 
   const navigate = (page: string) => {
