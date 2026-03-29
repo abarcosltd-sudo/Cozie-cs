@@ -57,13 +57,6 @@ export default function Messages() {
   };
 
   const userId = getUserIdFromToken();
-  
-  // Fetch conversations on mount
-  useEffect(() => {
-    if (token) {
-      fetchConversations();
-    }
-  }, [token]);
 
   useEffect(() => {
     if (userId) {
@@ -114,6 +107,13 @@ export default function Messages() {
       setLoading(false);
     }
   };
+
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (token) {
+      fetchConversations();
+    }
+  }, [token]);
   
   // Fetch messages when active chat changes
   useEffect(() => {
