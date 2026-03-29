@@ -50,12 +50,6 @@ export default function Messages() {
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const token = localStorage.getItem('token');
-
-  const getUserIdFromToken = () => {
-    return localStorage.getItem('userId') || '';
-  };
-
-  const userId = getUserIdFromToken();
   
   // Fetch conversations on mount
   useEffect(() => {
@@ -70,6 +64,49 @@ export default function Messages() {
       console.log('Joined socket room:', userId);
     }
   }, [userId]);
+
+  const fetchMessages = async (conversationId: string, scroll = true) => {
+    try {
+      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const formattedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          text: msg.text || '',
+          timestamp: formatTime(msg.timestamp),
+          sent: msg.senderId === getUserIdFromToken(),
+          isMusic: msg.isMusic || false,
+          musicTitle: msg.musicTitle,
+          musicArtist: msg.musicArtist,
+          musicUrl: msg.musicUrl
+        }));
+        setMessages(formattedMessages);
+        if (scroll) {
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const fetchConversations = async () => {
+    try {
+      const res = await fetch('https://cozie-kohl.vercel.app/api/conversations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConversations(data.conversations);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Fetch messages when active chat changes
   useEffect(() => {
@@ -108,32 +145,7 @@ export default function Messages() {
     };
   }, [activeChat]);
 
-  const fetchMessages = async (conversationId: string, scroll = true) => {
-    try {
-      const res = await fetch(`https://cozie-kohl.vercel.app/api/messages/${conversationId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        const formattedMessages = data.messages.map((msg: any) => ({
-          id: msg.id,
-          text: msg.text || '',
-          timestamp: formatTime(msg.timestamp),
-          sent: msg.senderId === getUserIdFromToken(),
-          isMusic: msg.isMusic || false,
-          musicTitle: msg.musicTitle,
-          musicArtist: msg.musicArtist,
-          musicUrl: msg.musicUrl
-        }));
-        setMessages(formattedMessages);
-        if (scroll) {
-          setTimeout(() => scrollToBottom(), 100);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
+  
 
   const fetchAvailableUsers = async () => {
     try {
