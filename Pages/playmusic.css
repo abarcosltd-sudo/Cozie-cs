@@ -412,7 +412,7 @@ body {
   flex-shrink: 0;
 }
 
-.queue-album-art .queue-album-art-image {
+.queue-album-image {
   width: 100%;
   height: 100%;
 }
