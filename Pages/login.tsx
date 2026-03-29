@@ -21,7 +21,7 @@ export default function Login() {
     };
 
     // Log the data being sent (for debugging)
-    console.log('Sending login request with:', userDetails);
+    //console.log('Sending login request with:', userDetails);
 
     // Send login request to your backend
     const URL = 'https://cozie-kohl.vercel.app/api/users/login'
@@ -42,7 +42,7 @@ export default function Login() {
     })
     .then(data => {
       // Successful login
-      console.log('Login successful:', data);
+      //console.log('Login successful:', data);
       
       // Store user data in localStorage or context if needed
       localStorage.setItem('user', JSON.stringify(data.user));
