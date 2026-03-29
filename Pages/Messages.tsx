@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './messages.css';
+import { socket } from '../socket'; // adjust path if needed
 
 interface Conversation {
   id: string;
@@ -50,6 +51,12 @@ export default function Messages() {
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const token = localStorage.getItem('token');
 
+  const getUserIdFromToken = () => {
+    return localStorage.getItem('userId') || '';
+  };
+
+  const userId = getUserIdFromToken();
+  
   // Fetch conversations on mount
   useEffect(() => {
     if (token) {
@@ -57,6 +64,13 @@ export default function Messages() {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (userId) {
+      socket.emit('join', userId);
+      console.log('Joined socket room:', userId);
+    }
+  }, [userId]);
+  
   // Fetch messages when active chat changes
   useEffect(() => {
     if (activeChat && token) {
@@ -64,32 +78,35 @@ export default function Messages() {
     }
   }, [activeChat]);
 
-  // Poll for new messages every 5 seconds
   useEffect(() => {
-    if (!activeChat) return;
-    
-    const interval = setInterval(() => {
-      fetchMessages(activeChat, false);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [activeChat]);
-
-  const fetchConversations = async () => {
-    try {
-      const res = await fetch('https://cozie-kohl.vercel.app/api/messages/conversations', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setConversations(data.conversations);
+    socket.on('newMessage', (data) => {
+      console.log('Realtime message:', data);
+  
+      // Only update if it's the current chat
+      if (data.conversationId === activeChat) {
+        const newMsg: Message = {
+          id: data.message.id,
+          text: data.message.text,
+          timestamp: formatTime(data.message.timestamp),
+          sent: data.message.senderId === userId,
+          isMusic: data.message.isMusic,
+          musicTitle: data.message.musicTitle,
+          musicArtist: data.message.musicArtist,
+          musicUrl: data.message.musicUrl
+        };
+  
+        setMessages(prev => [...prev, newMsg]);
+        scrollToBottom();
       }
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+      // Optional: update conversations list
+      fetchConversations();
+    });
+  
+    return () => {
+      socket.off('newMessage');
+    };
+  }, [activeChat]);
 
   const fetchMessages = async (conversationId: string, scroll = true) => {
     try {
