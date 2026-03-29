@@ -274,59 +274,59 @@ export default function HomeFeed() {
   const playMusic = async (songId: string) => {
     console.log('Playing music from post:', songId);
     
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`https://cozie-kohl.vercel.app/api/music/${songId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    // try {
+    //   const token = localStorage.getItem('token');
+    //   const res = await fetch(`https://cozie-kohl.vercel.app/api/music/${songId}`, {
+    //     headers: { Authorization: `Bearer ${token}` },
+    //   });
       
-      if (res.ok) {
-        const songData = await res.json();
+    //   if (res.ok) {
+    //     const songData = await res.json();
         
-        navigate('/play-music', {
-          state: {
-            currentSong: {
-              id: songId,
-              title: songData.song?.title || 'Unknown Title',
-              artist: songData.song?.artist || 'Unknown Artist',
-              albumArtUrl: songData.song?.albumArtUrl || null,
-              fileUrl: songData.song?.fileUrl || null,
-              duration: songData.song?.duration,
-              genre: songData.song?.genre,
-              releaseYear: songData.song?.releaseYear,
-            },
-            queue: songData.queue || []
-          }
-        });
-      } else {
-        const post = posts.find(p => p.id === songId);
-        navigate('/play-music', {
-          state: {
-            currentSong: {
-              id: songId,
-              title: post?.trackTitle || 'Unknown Title',
-              artist: post?.trackArtist || 'Unknown Artist',
-              albumArtUrl: post?.albumArtUrl || null,
-              fileUrl: post?.fileUrl || null,
-            }
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching song:', error);
-      const post = posts.find(p => p.id === songId);
-      navigate('/play-music', {
-        state: {
-          currentSong: {
-            id: songId,
-            title: post?.trackTitle || 'Unknown Title',
-            artist: post?.trackArtist || 'Unknown Artist',
-            albumArtUrl: post?.albumArtUrl || null,
-            fileUrl: post?.fileUrl || null,
-          }
-        }
-      });
-    }
+    //     navigate('/play-music', {
+    //       state: {
+    //         currentSong: {
+    //           id: songId,
+    //           title: songData.song?.title || 'Unknown Title',
+    //           artist: songData.song?.artist || 'Unknown Artist',
+    //           albumArtUrl: songData.song?.albumArtUrl || null,
+    //           fileUrl: songData.song?.fileUrl || null,
+    //           duration: songData.song?.duration,
+    //           genre: songData.song?.genre,
+    //           releaseYear: songData.song?.releaseYear,
+    //         },
+    //         queue: songData.queue || []
+    //       }
+    //     });
+    //   } else {
+    //     const post = posts.find(p => p.id === songId);
+    //     navigate('/play-music', {
+    //       state: {
+    //         currentSong: {
+    //           id: songId,
+    //           title: post?.trackTitle || 'Unknown Title',
+    //           artist: post?.trackArtist || 'Unknown Artist',
+    //           albumArtUrl: post?.albumArtUrl || null,
+    //           fileUrl: post?.fileUrl || null,
+    //         }
+    //       }
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error('Error fetching song:', error);
+    //   const post = posts.find(p => p.id === songId);
+    //   navigate('/play-music', {
+    //     state: {
+    //       currentSong: {
+    //         id: songId,
+    //         title: post?.trackTitle || 'Unknown Title',
+    //         artist: post?.trackArtist || 'Unknown Artist',
+    //         albumArtUrl: post?.albumArtUrl || null,
+    //         fileUrl: post?.fileUrl || null,
+    //       }
+    //     }
+    //   });
+    // }
   };
   
   const handleNavigation = (page: string) => {
