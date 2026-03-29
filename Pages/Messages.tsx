@@ -94,7 +94,7 @@ export default function Messages() {
 
   const fetchConversations = async () => {
     try {
-      const res = await fetch('https://cozie-kohl.vercel.app/api/conversations', {
+      const res = await fetch('https://cozie-kohl.vercel.app/api/messages/conversations', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
