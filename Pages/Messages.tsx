@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './messages.css';
-import { socket } from '../socket'; // adjust path if needed
+//import { socket } from '../socket'; // adjust path if needed
 
 interface Conversation {
   id: string;
@@ -56,14 +56,14 @@ export default function Messages() {
     return localStorage.getItem('userId') || '';
   };
 
-  const userId = getUserIdFromToken();
+  //const userId = getUserIdFromToken();
 
-  useEffect(() => {
-    if (userId) {
-      socket.emit('join', userId);
-      console.log('Joined socket room:', userId);
-    }
-  }, [userId]);
+  // useEffect(() => {
+  //   if (userId) {
+  //     socket.emit('join', userId);
+  //     console.log('Joined socket room:', userId);
+  //   }
+  // }, [userId]);
 
   const fetchMessages = async (conversationId: string, scroll = true) => {
     try {
@@ -122,35 +122,35 @@ export default function Messages() {
     }
   }, [activeChat]);
 
-  useEffect(() => {
-    socket.on('newMessage', (data) => {
-      console.log('Realtime message:', data);
+  // useEffect(() => {
+  //   socket.on('newMessage', (data) => {
+  //     console.log('Realtime message:', data);
   
-      // Only update if it's the current chat
-      if (data.conversationId === activeChat) {
-        const newMsg: Message = {
-          id: data.message.id,
-          text: data.message.text,
-          timestamp: formatTime(data.message.timestamp),
-          sent: data.message.senderId === userId,
-          isMusic: data.message.isMusic,
-          musicTitle: data.message.musicTitle,
-          musicArtist: data.message.musicArtist,
-          musicUrl: data.message.musicUrl
-        };
+  //     // Only update if it's the current chat
+  //     if (data.conversationId === activeChat) {
+  //       const newMsg: Message = {
+  //         id: data.message.id,
+  //         text: data.message.text,
+  //         timestamp: formatTime(data.message.timestamp),
+  //         sent: data.message.senderId === userId,
+  //         isMusic: data.message.isMusic,
+  //         musicTitle: data.message.musicTitle,
+  //         musicArtist: data.message.musicArtist,
+  //         musicUrl: data.message.musicUrl
+  //       };
   
-        setMessages(prev => [...prev, newMsg]);
-        scrollToBottom();
-      }
+  //       setMessages(prev => [...prev, newMsg]);
+  //       scrollToBottom();
+  //     }
   
-      // Optional: update conversations list
-      fetchConversations();
-    });
+  //     // Optional: update conversations list
+  //     fetchConversations();
+  //   });
   
-    return () => {
-      socket.off('newMessage');
-    };
-  }, [activeChat]);
+  //   return () => {
+  //     socket.off('newMessage');
+  //   };
+  // }, [activeChat]);
 
   
 
