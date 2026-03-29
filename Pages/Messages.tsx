@@ -50,6 +50,13 @@ export default function Messages() {
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const token = localStorage.getItem('token');
+
+  const getUserIdFromToken = (): string => {
+    // Parse JWT to get user ID (you can also store user ID in localStorage)
+    return localStorage.getItem('userId') || '';
+  };
+
+  const userId = getUserIdFromToken();
   
   // Fetch conversations on mount
   useEffect(() => {
@@ -270,11 +277,6 @@ export default function Messages() {
       minute: '2-digit',
       hour12: true
     });
-  };
-
-  const getUserIdFromToken = (): string => {
-    // Parse JWT to get user ID (you can also store user ID in localStorage)
-    return localStorage.getItem('userId') || '';
   };
 
   const getRandomGradient = () => {
