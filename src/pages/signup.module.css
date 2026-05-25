@@ -1,0 +1,31 @@
+.strength {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  min-height: 1em;
+  font-weight: 500;
+}
+
+.strength0 {
+  color: transparent;
+}
+
+.strength1 {
+  color: #f87171;
+}
+
+.strength2 {
+  color: #facc15;
+}
+
+.strength3 {
+  color: #4ade80;
+}
+
+.inputError {
+  border-color: #ef4444 !important;
+}
+
+.confirmHelp {
+  font-size: 0.8rem;
+  color: #fca5a5;
+}

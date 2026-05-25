@@ -1,0 +1,16 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.placeholder {
+  letter-spacing: 0;
+}

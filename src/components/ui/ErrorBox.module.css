@@ -1,0 +1,42 @@
+.box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.inline {
+  margin: 8px 0;
+}
+
+.page {
+  margin: 24px auto;
+  max-width: 480px;
+}
+
+.icon {
+  color: #fca5a5;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.content {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.content strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+.message {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}

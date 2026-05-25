@@ -1,0 +1,185 @@
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  color: var(--color-text-muted);
+}
+
+.profileHeader {
+  text-align: center;
+  padding: 24px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.avatar {
+  margin-bottom: 8px;
+  border: 3px solid rgba(168, 85, 247, 0.3);
+}
+
+.name {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--color-text);
+}
+
+.handle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.bio {
+  margin: 8px 12px 0;
+  max-width: 340px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.stats {
+  list-style: none;
+  margin: 18px 0 6px;
+  padding: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.stats > li {
+  flex: 1;
+}
+
+.statBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+  padding: 6px;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.statBlock:hover,
+.statBlock:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
+}
+
+.statNumber {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1.05rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 12px;
+  background: var(--color-surface);
+  position: sticky;
+  top: 60px;
+  z-index: 1;
+}
+
+.tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  padding: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tabActive {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.tabPanel {
+  padding: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.gridItem {
+  aspect-ratio: 1;
+  border: none;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  padding: 0;
+}
+
+.gridFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 6px;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.likedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.likedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.likedMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.likedTitle {
+  font-weight: 600;
+}
+
+.likedArtist {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
