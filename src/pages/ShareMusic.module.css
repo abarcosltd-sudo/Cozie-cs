@@ -1,0 +1,160 @@
+.body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.searchIcon,
+.searchClear {
+  color: var(--color-text-muted);
+}
+
+.searchClear {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.loading,
+.empty {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.resultRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.resultRow:last-child {
+  border-bottom: none;
+}
+
+.resultRow:hover,
+.resultRow:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.resultTitle {
+  font-weight: 600;
+}
+
+.resultArtist {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.selectedMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.selectedTitle {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.selectedArtist {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  padding: 32px 16px;
+}
+
+.captionLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+}
+
+.captionInput {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--color-text);
+  resize: vertical;
+  font-size: 0.95rem;
+  min-height: 72px;
+  font-family: inherit;
+}
+
+.captionInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.captionCount {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: right;
+}

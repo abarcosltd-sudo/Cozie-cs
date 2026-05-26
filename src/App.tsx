@@ -1,205 +1,231 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import "./App.css";
-import Splash from "../Pages/splash";
-import Login from "../Pages/login";
-import Signup from "../Pages/signup";
-import Verification from "../Pages/verification";
-import Preference from "../Pages/Preference";
-import ProfileSetup from "../Pages/ProfileSetup";
-import ConnectMusic from "../Pages/ConnectMusic";
-import HomeFeed from "../Pages/HomeFeed";
-import Discover from "../Pages/Discover";
-import UserProfile from "../Pages/UserProfile";
-import ShareMusic from "../Pages/ShareMusic";
-import AddMusic from "../Pages/AddMusic";
-import PlayMusic from "../Pages/PlayMusic";
-import Messages from "../Pages/Messages";
-import ComingSoon from "../Pages/ComingSoon";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { ProtectedRoute } from "./components/routing/ProtectedRoute";
+import { PublicOnlyRoute } from "./components/routing/PublicOnlyRoute";
 
-const API_URL = "https://cozie-kohl.vercel.app/api/home";
-
-type ApiData = any;
-
-function Home() {
-  const [data, setData] = useState<ApiData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    setData(null);
-    try {
-      const token = localStorage.getItem("token"); // If your API requires auth
-
-      const res = await fetch(API_URL, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` }),
-        },
-        cache: "no-store",
-      });
-    
-      if (!res.ok) {
-        throw new Error(`Server responded ${res.status} ${res.statusText}`);
-      }
-    
-      const json = await res.json();
-      setData(json);
-    
-    } catch (err: any) {
-      console.error("Fetch error:", err);
-      setError(err?.message || "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchData();
-  }, []);
-
-  return (
-    <div className="page">
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <h1 className="title">Cozie — Server Status</h1>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Link to="/splash" className="nav-link">Splash</Link>
-            <Link to="/home-feed" className="nav-link">Home Feed</Link>
-          </div>
-        </div>
-
-        {loading && (
-          <div className="center">
-            <div className="spinner" aria-hidden />
-            <div>Loading data from server...</div>
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="errorBox">
-            <strong>Error fetching server data</strong>
-            <div style={{ marginTop: 8 }}>{error}</div>
-            <button className="button" onClick={fetchData}>
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && data && (
-          <div className="successBox">
-            <strong>Server response</strong>
-            <pre className="pre">{JSON.stringify(data, null, 2)}</pre>
-            <button className="button" onClick={fetchData}>
-              Refresh
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && !data && (
-          <div className="center">No data available from server.</div>
-        )}
-      </div>
-    </div>
-  );
-}
+import Splash from "./pages/splash";
+import Login from "./pages/login";
+import Signup from "./pages/signup";
+import Verification from "./pages/verification";
+import Preference from "./pages/Preference";
+import ProfileSetup from "./pages/ProfileSetup";
+import ConnectMusic from "./pages/ConnectMusic";
+import HomeFeed from "./pages/HomeFeed";
+import Discover from "./pages/Discover";
+import UserProfile from "./pages/UserProfile";
+import ShareMusic from "./pages/ShareMusic";
+import AddMusic from "./pages/AddMusic";
+import PlayMusic from "./pages/PlayMusic";
+import Messages from "./pages/Messages";
+import ComingSoon from "./pages/ComingSoon";
+import Notifications from "./pages/Notifications";
+import Followers from "./pages/Followers";
+import Following from "./pages/Following";
+import SearchResults from "./pages/SearchResults";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/splash" element={<Splash />} />
-        <Route path="/home-feed" element={<HomeFeed />} />
-        <Route path="/discover" element={<Discover />} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verification" element={<Verification />} />
-        <Route path="/preference" element={<Preference />} />
-        <Route path="/profile-setup" element={<ProfileSetup />} />
-        <Route path="/connect-music" element={<ConnectMusic />} />
-        <Route path="/share-music" element={<ShareMusic />} />
-        <Route path="/add-music" element={<AddMusic />} />
-        <Route path="/play-music" element={<PlayMusic />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/coming-soon" element={<ComingSoon />} />
-        <Route path="/followers" element={<ComingSoon />} />
-        <Route path="/following" element={<ComingSoon />} />
-        <Route path="/edit-profile" element={<ComingSoon />} />
-        <Route path="/coming-soon" element={<ComingSoon />} />
-        <Route path="/settings" element={<ComingSoon />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      {/* Landing → splash if logged out, home-feed if logged in. */}
+      <Route path="/" element={<Navigate to="/splash" replace />} />
+
+      {/* --- Public-only (anonymous) screens ----------------------- */}
+      <Route
+        path="/splash"
+        element={
+          <PublicOnlyRoute>
+            <Splash />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <Login />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicOnlyRoute>
+            <Signup />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/verification"
+        element={
+          <PublicOnlyRoute>
+            <Verification />
+          </PublicOnlyRoute>
+        }
+      />
+
+      {/* --- Authenticated screens --------------------------------- */}
+      <Route
+        path="/home-feed"
+        element={
+          <ProtectedRoute>
+            <HomeFeed />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/discover"
+        element={
+          <ProtectedRoute>
+            <Discover />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/search-results"
+        element={
+          <ProtectedRoute>
+            <SearchResults />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/:userId"
+        element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/preference"
+        element={
+          <ProtectedRoute>
+            <Preference />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile-setup"
+        element={
+          <ProtectedRoute>
+            <ProfileSetup />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/connect-music"
+        element={
+          <ProtectedRoute>
+            <ConnectMusic />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/share-music"
+        element={
+          <ProtectedRoute>
+            <ShareMusic />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/add-music"
+        element={
+          <ProtectedRoute>
+            <AddMusic />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/play-music"
+        element={
+          <ProtectedRoute>
+            <PlayMusic />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/followers"
+        element={
+          <ProtectedRoute>
+            <Followers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/followers/:userId"
+        element={
+          <ProtectedRoute>
+            <Followers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/following"
+        element={
+          <ProtectedRoute>
+            <Following />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/following/:userId"
+        element={
+          <ProtectedRoute>
+            <Following />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit-profile"
+        element={
+          <ProtectedRoute>
+            <ComingSoon />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <ComingSoon />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coming-soon"
+        element={
+          <ProtectedRoute>
+            <ComingSoon />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 — anything else falls through to splash/home depending on auth. */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
-
-// const styles: Record<string, React.CSSProperties> = {
-//   page: {
-//     minHeight: "100vh",
-//     display: "flex",
-//     alignItems: "center",
-//     justifyContent: "center",
-//     background: "linear-gradient(180deg,#f6f9fc,#eef6ff)",
-//     padding: 20,
-//   },
-//   card: {
-//     width: "100%",
-//     maxWidth: 820,
-//     background: "green",
-//     borderRadius: 12,
-//     padding: 28,
-//     boxShadow: "0 6px 24px rgba(32,40,60,0.12)",
-//     boxSizing: "border-box",
-//   },
-//   title: { margin: 0, marginBottom: 12, fontSize: 22 },
-//   center: { display: "flex", gap: 12, alignItems: "center" },
-//   spinner: {
-//     width: 18,
-//     height: 18,
-//     borderRadius: 9,
-//     border: "3px solid #01060cff",
-//     borderTopColor: "#2563eb",
-//     animation: "spin 1s linear infinite",
-//   },
-//   errorBox: {
-//     background: "#2c2c2cff",
-//     border: "1px solid #fecaca",
-//     padding: 12,
-//     borderRadius: 8,
-//     marginTop: 12,
-//   },
-//   successBox: {
-//     background: "#16c24aff",
-//     border: "1px solid #bbf7d0",
-//     padding: 12,
-//     borderRadius: 8,
-//     marginTop: 12,
-//   },
-//   pre: {
-//     marginTop: 8,
-//     maxHeight: 320,
-//     overflow: "auto",
-//     background: "#0a7ff3ff",
-//     padding: 10,
-//     borderRadius: 6,
-//     fontSize: 13,
-//   },
-//   button: {
-//     marginTop: 12,
-//     padding: "8px 12px",
-//     background: "#2563eb",
-//     color: "white",
-//     border: "none",
-//     borderRadius: 6,
-//     cursor: "pointer",
-//   },
-// };
-
-// Add keyframes for spinner animation via a small global style injection
-const styleEl = document.createElement("style");
-styleEl.innerHTML = `@keyframes spin { to { transform: rotate(360deg); } }`;
-document.head.appendChild(styleEl);

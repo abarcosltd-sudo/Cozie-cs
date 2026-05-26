@@ -1,0 +1,73 @@
+.shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(168, 85, 247, 0.18);
+  filter: blur(20px);
+  animation: float 20s infinite ease-in-out;
+}
+
+.shape:nth-child(1) {
+  width: 300px;
+  height: 300px;
+  top: -150px;
+  left: -150px;
+}
+
+.shape:nth-child(2) {
+  width: 220px;
+  height: 220px;
+  bottom: -100px;
+  right: -100px;
+  animation-delay: -7s;
+}
+
+.shape:nth-child(3) {
+  width: 160px;
+  height: 160px;
+  top: 45%;
+  right: 8%;
+  animation-delay: -13s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.features {
+  list-style: none;
+  margin: 24px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+}
+
+.featureIcon {
+  font-size: 1.4rem;
+}
