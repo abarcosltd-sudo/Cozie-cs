@@ -1,0 +1,118 @@
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+.player {
+  position: absolute;
+  inset: 0;
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #16131f 0%, #0a0810 100%);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.processingBlock,
+.errored {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.errored small {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #c084fc;
+  animation: cardSpin 0.9s linear infinite;
+}
+
+@keyframes cardSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.overlay {
+  position: absolute;
+  left: 16px;
+  bottom: 24px;
+  right: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.authorName {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.caption {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.songChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.9);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.songLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.rail {
+  position: absolute;
+  right: 12px;
+  bottom: 24px;
+  z-index: 2;
+}

@@ -37,7 +37,20 @@
   color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   border-radius: 12px;
-  transition: color 0.15s ease, background 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.create {
+  color: #c084fc;
+}
+
+.create:hover,
+.create:focus-visible {
+  transform: translateY(-1px);
 }
 
 .link:hover,

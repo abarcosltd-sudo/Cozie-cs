@@ -7,9 +7,11 @@ A granular tracking document mapping the `Cozie-cs/` frontend implementation aga
 - `[~]` Partially done — needs work (see note).
 - `[ ]` Not started.
 
-**Snapshot:** roughly **30%** of frontend scope from the SRS (47 of 213 granular items checked).
+**Snapshot:** roughly **24%** of frontend scope from the SRS (52 of 213 granular items checked).
 
 > **Architecture milestone (2026-05-25):** Tier 1–4 refactor shipped — see `## Frontend refactor — 2026-05-25` at the bottom of this file.
+>
+> **Feature milestone (2026-05-28):** Reels frontend slice shipped (hls.js player, vertical feed, Mux direct upload, engagement, profile tab, deep-link viewer, notification routing) — see `## Reels frontend slice — 2026-05-28` at the bottom of this file.
 
 > Each bar is 10 cells wide. When you tick or untick an item below, also update the count and bar in the matching row here so this dashboard stays in sync.
 
@@ -17,7 +19,7 @@ A granular tracking document mapping the `Cozie-cs/` frontend implementation aga
 
 | §  | Section                          | Progress                  | Done   |
 |----|----------------------------------|---------------------------|--------|
-| —  | **Overall**                      | `▰▰▱▱▱▱▱▱▱▱`              | 47/213 |
+| —  | **Overall**                      | `▰▰▱▱▱▱▱▱▱▱`              | 52/213 |
 | 1  | Project infrastructure           | `▰▰▰▰▰▱▱▱▱▱`              | 12/26  |
 | 2  | Splash & onboarding              | `▰▰▰▰▰▱▱▱▱▱`              | 7/13   |
 | 3  | Home feed                        | `▰▰▰▱▱▱▱▱▱▱`              | 5/17   |
@@ -31,7 +33,7 @@ A granular tracking document mapping the `Cozie-cs/` frontend implementation aga
 | 11 | Artist Communities ("Bubbles")   | `▱▱▱▱▱▱▱▱▱▱`              | 0/5    |
 | 12 | Battle Rooms                     | `▱▱▱▱▱▱▱▱▱▱`              | 0/9    |
 | 13 | Matchmaking                      | `▱▱▱▱▱▱▱▱▱▱`              | 0/6    |
-| 14 | Reels                            | `▱▱▱▱▱▱▱▱▱▱`              | 0/5    |
+| 14 | Reels                            | `▰▰▰▰▰▰▰▰▰▰`              | 5/5    |
 | 15 | Premium tier UI                  | `▱▱▱▱▱▱▱▱▱▱`              | 0/11   |
 | 16 | Notifications                    | `▱▱▱▱▱▱▱▱▱▱`              | 0/4    |
 | 17 | Coming-soon placeholders         | `▰▰▰▰▰▰▰▰▰▱`              | 6/7    |
@@ -252,11 +254,11 @@ A granular tracking document mapping the `Cozie-cs/` frontend implementation aga
 
 ## 14. Reels (SRS alg-step 8)
 
-- [ ] Reels tab
-- [ ] Vertical-swipe reel player
-- [ ] Record / upload reel UI
-- [ ] Reel likes / comments / shares UI
-- [ ] Reel discovery feed
+- [x] Reels tab (`src/components/layout/BottomNav.tsx`, route `/reels`)
+- [x] Vertical-swipe reel player (`src/pages/Reels.tsx` + `src/components/reels/ReelPlayer.tsx`, hls.js + windowed 5-instance list, view-ping after 3s)
+- [x] Record / upload reel UI (`src/pages/ComposeReel.tsx`, Mux direct-upload via `src/lib/upload.ts`, persistent `<UploadToast>`)
+- [x] Reel likes / comments / shares UI (optimistic like via `useToggleReelLike`, `ReelCommentsSheet`, `ReelShareSheet` with Web Share + copy link)
+- [x] Reel discovery feed (`useInfiniteReelsDiscover` + Following/Discover segmented control)
 
 ---
 
@@ -442,4 +444,95 @@ End-to-end audit of every backend route against every frontend call site. Three 
 - `npm run lint` → exit 0
 - `npm run build` → 1710 modules, 397.81 KB JS / 124.73 KB gz, 41.40 KB CSS / 8.28 KB gz
 - `node --check` on every touched backend file → all parse
+
+---
+
+## Reels frontend slice — 2026-05-28
+
+End-to-end client side of the Reels feature against the 11-endpoint backend that shipped on 2026-05-26 (see `Cozie/REELS_FEATURE_SPEC.md` + `Cozie/PROGRESS.md` "Reels feature ship — 2026-05-26"). Implements the spec end-to-end: vertical Discover/Following feed, Mux direct-upload pipeline, like/comment/view/share engagement, profile Reels tab, deep-link viewer, two new notification types.
+
+Planned in [`reels_frontend_slice_9f1aafda.plan.md`](../.cursor/plans/reels_frontend_slice_9f1aafda.plan.md) and shipped across four reviewable slices (F1 → F4) in a single branch.
+
+### F1 — Infra + Discover ✅
+- [x] `hls.js` dependency added; `src/lib/hls.ts` attaches native HLS on Safari, falls back to `hls.js` everywhere else; explicit `detach()` cleanup so swiping doesn't leak buffers.
+- [x] `src/types/api.ts` extended with `Reel`, `ReelStatus`, `ReelErrorReason`, `ReelComment`, `ReelFeedResponse`, `ReelCommentsResponse`, `CreateReelResponse`, `SingleReelResponse`, `ToggleReelLikeResponse`, `RegisterReelViewResponse`, `ShareReelResponse`, `AddReelCommentResponse`. `NotificationType` widened with `"reel_like" | "reel_comment"`; `targetType` widened with `"reel"`.
+- [x] `src/hooks/useReels.ts` — full hook surface: `useInfiniteReelsDiscover`, `useFollowingReelsFeed`, `useUserReels`, `useReel` (polls every 5 s while status ≠ `ready`), `useReelComments` (cursor-paginated), `useToggleReelLike` (optimistic across discover + following + by-user + single caches), `useAddReelComment`, `useRegisterReelView` (fire-and-forget), `useShareReel` (optimistic shareCount bump), `useCreateReel`.
+- [x] `src/components/reels/ReelPlayer.tsx` — autoplay-muted-when-active, visibility-pause via document visibility + IntersectionObserver, loop, 3 s view-ping callback driven by `timeupdate` deltas (immune to seek/loop wrap), `navigator.connection.saveData` respect (poster-only / tap-to-play).
+- [x] `src/components/reels/ReelCard.tsx` + `ReelActionRail.tsx` — memoized card, author overlay, song chip, right rail with like/comment/share counts (K/M formatting).
+- [x] `src/pages/Reels.tsx` — windowed render (active + 2 above + 2 below = 5 player instances max per spec §5.3), scroll-snap-y, page-scoped view-ping dedup `Set<string>`, auto-pagination when nearing the end.
+- [x] `src/pages/Reels.module.css` (full-bleed black background, segmented control float, FAB compose button) + route wired behind `<ProtectedRoute>`.
+- [x] `src/components/layout/PageLayout.tsx` extended with `theme="dark"` prop; dark variant kills the 640 px max-width and white background so the player can go edge-to-edge.
+- [x] `src/components/layout/BottomNav.tsx` reworked to Default A: center "Create" is now an action button that opens `<CreateSheet>` (pick between Share music / New reel) instead of a route; Reels tab added between Create and Profile; Messages moved to a header icon next to the bell.
+
+### F2 — Compose + upload pipeline ✅
+- [x] `src/lib/upload.ts` — `putVideoWithProgress(url, file, { signal, onProgress })`. XHR-based because Fetch can't surface upload progress. Cancellable via `AbortSignal`; rejects with a typed `UploadError` (`aborted` flag set for user cancels).
+- [x] `src/contexts/UploadContext.tsx` — global `<UploadProvider>` mounted at the App root; single-upload state machine (`idle → queued → uploading → processing → ready | errored`) with object-URL preview thumbnails, AbortController cancellation, and polling of `/api/reels/:reelId` after the PUT completes (5 s → 30 s after 60 s elapsed). Feeds + single-reel caches are bumped on `ready`.
+- [x] `src/components/reels/UploadToast.tsx` — persistent floating chip that survives navigation; shows progress %, processing spinner, success "View" CTA, errored "Retry" CTA, and a cancel/dismiss button gated on phase. Mounted in `App.tsx` so every route renders it.
+- [x] `src/pages/ComposeReel.tsx` — file pick (with `capture="user"` for in-browser camera), in-browser validation (MIME `video/*`, ≤ 50 MB, ≤ 60 s), object-URL `<video controls>` preview, caption (300 char cap) + song picker (mirrors `ShareMusic.tsx` debounced search). Submit hands off to `useCreateReel` → `useUpload().start()` then navigates back to `/reels` immediately.
+
+### F3 — Engagement ✅
+- [x] Heart wired through `useToggleReelLike`; optimistic across every cached copy of the reel (helper `patchReelInCaches` traverses discover infinite query, following query, all by-user infinite queries, single-reel query).
+- [x] `src/components/reels/ReelCommentsSheet.tsx` — cursor-paginated comments (existing post `CommentsModal` is non-paginated; reel sheet ships paginated from day one per plan open-decision #3), reuses the existing `<Modal>` primitive, Enter-to-post / Shift+Enter for newline.
+- [x] `src/components/reels/ReelShareSheet.tsx` — Web Share API when available + clipboard fallback (with legacy `document.execCommand("copy")` for browsers that gate the async API). Each row fires `POST /api/reels/:reelId/share` with the platform tag before performing the action (matches Instagram's optimistic-on-tap behaviour). DM row deferred per plan open-decision #2 until the DM picker is extracted as a standalone component.
+
+### F4 — Following + Profile + Notifications ✅
+- [x] Following/Discover segmented control on `Reels.tsx` (Discover infinite, Following fixed top-N since backend doesn't expose a cursor for the fan-out feed); empty-state copy per spec §5.3.
+- [x] `src/pages/UserProfile.tsx` gained a fourth tab "Reels" between Posts and Playlists; renders a 3-column thumbnail grid from `useUserReels(userId)` with a small play+view-count badge per tile. Tapping a tile navigates to `/reels/:reelId`.
+- [x] `src/pages/ReelDetail.tsx` — opens a single reel for `/reels/:reelId`. Once the focused reel resolves, fetches the author's `useUserReels` and concatenates the focused reel at the front so the windowed list code stays uniform. Vertical swipe through the rest of the author's catalogue, URL kept in sync with `replace: true` as the active reel changes (so refresh / copy-link reflect the current clip).
+- [x] `src/pages/Notifications.tsx` extended: `describe()`, `iconFor()`, `destination()` switches now cover `reel_like` / `reel_comment`; `targetType: "reel"` maps to `/reels/:targetId`. `useNotifications.ts` needed no structural change — the widened type union flows through automatically.
+
+### Files added
+- `src/lib/hls.ts`
+- `src/lib/upload.ts`
+- `src/hooks/useReels.ts`
+- `src/contexts/UploadContext.tsx`
+- `src/components/reels/ReelPlayer.tsx` (+ `.module.css`)
+- `src/components/reels/ReelCard.tsx` (+ `.module.css`)
+- `src/components/reels/ReelActionRail.tsx` (+ `.module.css`)
+- `src/components/reels/ReelCommentsSheet.tsx` (+ `.module.css`)
+- `src/components/reels/ReelShareSheet.tsx` (+ `.module.css`)
+- `src/components/reels/CreateSheet.tsx` (+ `.module.css`)
+- `src/components/reels/UploadToast.tsx` (+ `.module.css`)
+- `src/pages/Reels.tsx` (+ `.module.css`)
+- `src/pages/ComposeReel.tsx` (+ `.module.css`)
+- `src/pages/ReelDetail.tsx` (+ `.module.css`)
+
+### Files modified
+- `package.json` — added `hls.js` dependency.
+- `src/types/api.ts` — full Reel type surface; widened notification unions.
+- `src/App.tsx` — three new routes; wraps the entire app in `<UploadProvider>`; mounts global `<UploadToast>`.
+- `src/components/layout/BottomNav.tsx` (+ `.module.css`) — center "Create" action + Reels tab + 5-tab layout.
+- `src/components/layout/Header.tsx` — new Messages icon (demoted from bottom nav).
+- `src/components/layout/PageLayout.tsx` (+ `.module.css`) — `theme="dark"` prop.
+- `src/pages/UserProfile.tsx` (+ `.module.css`) — `"reels"` tab + `ReelsGrid` component.
+- `src/pages/Notifications.tsx` — describe / iconFor / destination extensions.
+
+### Open decisions resolved
+1. **Bottom nav layout** → Default A (5 tabs, Messages → header icon).
+2. **DM share row** → omitted in F3; reintroduce when the DM picker is extracted.
+3. **Comments pagination** → reel sheet ships paginated from day one (cursor-based via `useInfiniteQuery`).
+
+### Open decisions for production
+- **CSP**: `nginx.conf` needed to add `https://stream.mux.com`, `https://image.mux.com`, and `https://storage.googleapis.com` to `connect-src` — done in this slice.
+- **Bundle**: hls.js adds ~145 KB minified / ~40 KB gz. The three reel routes (`/reels`, `/reels/:reelId`, `/compose/reel`) are now `React.lazy`-split, so the hls.js cost and the reel runtime only download when the user actually navigates into the feature. Cold-load main bundle dropped from **580.46 → 420.88 KB raw / 180.20 → 131.76 KB gzipped** (≈ 48 KB gz off the critical path). The shared reel chunk is 537.44 KB / 168.16 KB gzipped and is fetched on first reel navigation, then cached.
+
+### Out of scope (carry-over to next slice)
+- Reel deletion (depends on backend `DELETE /api/reels/:reelId`, currently unimplemented).
+- Edit-after-publish.
+- Hashtag / mention parsing inside captions.
+- FCM push notifications (web push registration).
+- In-browser trim / edit before upload.
+- Subtitles / caption tracks.
+- Data-saver preferences panel (current behaviour: respect `navigator.connection.saveData` automatically).
+
+### Verification (post-slice)
+- `npx tsc --noEmit` → exit 0
+- `npm run lint` (scoped to `src/`) → no errors, no warnings in the new files. Pre-existing lint debt in `Pages/*` (legacy folder, ignored) untouched.
+- `npm run build` → 1736 modules. Critical-path `index-*.js` is **420.88 KB / 131.76 KB gzipped**; three reel routes ship as their own chunks (`Reels-*.js` 6.02 KB, `ReelDetail-*.js` 4.54 KB, `ComposeReel-*.js` 6.21 KB) plus a shared `Reels.module-*.js` of 537.44 KB / 168.16 KB gzipped (hls.js + ReelPlayer/Card/Rail + `useReels`) that loads on first reel navigation.
+
+### Follow-up fixes (2026-05-28, same day)
+- **🔴 Notification text**: `Notifications.tsx` `describe("reel_like")` now reads `snapshot.songTitle` instead of the never-set `postCaption`, matching `Cozie/services/notificationService.js#emitReelLike`. Wording: `liked your reel featuring "<song>"`.
+- **🔴 UploadContext race**: replaced the stale-closure `current` guard inside `start()` with a `useRef<boolean>` in-flight flag set on entry and cleared on every terminal transition (ready / errored / 404 / abort / unmount). `startPolling` is now a proper `useCallback` so `start`'s dep list is honest and the `eslint-disable` directive is gone. Provider unmount now `abort()`s the in-flight upload before cleanup so a logout-mid-upload stops pushing bytes to Mux.
+- **🔴 Like-button burst**: `useToggleReelLike` no longer snapshots per mutation. A per-reel `LikeBurst` (snapshot + counter + errored flag) is created on the first in-flight toggle and cleared only when the last toggle in the burst settles. Rapid double-taps now share one pre-burst snapshot, so a failed mutation in the middle of a burst can no longer roll back to an already-optimistically-mutated cache.
+- **🟡 Code-split**: `Reels`, `ReelDetail`, `ComposeReel` are now `React.lazy` behind a top-level `<Suspense fallback={<FullPageSpinner />}>` in `App.tsx`. Cold-load gzip savings: ~48 KB on the critical path (see bundle table above).
 
