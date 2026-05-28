@@ -138,10 +138,41 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   // Polling helper. Wrapped in useCallback so `start()` can list it as a
   // proper dep (and so the linter is happy without disables).
+  //
+  // Self-healing: every Nth tick we also POST to /reconcile, which forces
+  // the backend to query Mux directly and patch the doc. This is the
+  // backstop for the case where Mux's `video.upload.asset_created` /
+  // `video.asset.ready` webhooks never deliver — the toast would
+  // otherwise sit on "Processing" forever even though the asset is fine.
+  // We do it on ticks 3, 6, and 10 only — the server-side rate limit
+  // would catch us anyway, but being polite here costs nothing.
   const startPolling = useCallback(
     (reelId: string, base: UploadStateBase, sinceMs: number) => {
       clearPolling();
+      let tickN = 0;
+      let reconcileInFlight = false;
+      const maybeReconcile = (currentReelId: string) => {
+        if (tickN !== 3 && tickN !== 6 && tickN !== 10) return;
+        if (reconcileInFlight) return;
+        reconcileInFlight = true;
+        api
+          .post<SingleReelResponse>(`/api/reels/${currentReelId}/reconcile`)
+          .then((resp) => {
+            qc.setQueryData<SingleReelResponse>(
+              REEL_KEYS.single(currentReelId),
+              resp
+            );
+          })
+          .catch(() => {
+            /* best-effort — poll loop continues */
+          })
+          .finally(() => {
+            reconcileInFlight = false;
+          });
+      };
+
       const tick = async () => {
+        tickN += 1;
         try {
           const resp = await api.get<SingleReelResponse>(
             `/api/reels/${reelId}`
@@ -175,6 +206,10 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             clearPolling();
             return;
           }
+          // Still pending or processing — try a server-side reconcile on
+          // the schedule above. Fire-and-forget; the next tick will pick
+          // up whatever state Mux returned.
+          maybeReconcile(reelId);
         } catch (err) {
           // Transient network error — keep polling. Only bail if the reel
           // doc is genuinely gone (404).

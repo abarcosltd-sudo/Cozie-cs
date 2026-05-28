@@ -16,17 +16,27 @@
   margin: 0 auto;
 }
 
+/* Reels surface: replace .shell's `min-height` with an explicit viewport
+   height so children can resolve `height: 100%`. Without this, the chain
+   <main flex:1> → .feed{height:100%} → .slot{height:100%} →
+   .card{height:100%} → <video>{height:100%} all collapses to 0 because
+   `min-height` does NOT count as a definite height for percentage
+   resolution. The video then renders 768×0 — playing but invisible. */
 .shellDark {
   background: #000;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* Edge-to-edge, no max-width, no padding — used by the Reels feed so the
-   vertical video player can fill the viewport. */
+   vertical video player can fill the viewport. `height: 100%` here is
+   what propagates the definite height from .shellDark down to .feed. */
 .mainDark {
   max-width: 100%;
   width: 100%;
   margin: 0;
   background: #000;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
 }

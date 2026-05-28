@@ -12,7 +12,7 @@
  * compromise the music-post following feed has lived with — see backend
  * `PROGRESS.md`).
  */
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -107,10 +107,21 @@ export function useUserReels(userId: string | undefined) {
  * Single reel. While the reel is still uploading or processing we poll every
  * 5 s so the compose-toast and detail view can transition to `ready` without
  * a manual refetch. Once ready (or errored), polling stops.
+ *
+ * Self-healing: when the Mux webhook fails to deliver (the canonical reason a
+ * reel gets stuck in `pending_upload`/`processing` forever), we auto-fire the
+ * reconcile endpoint after the 3rd, 8th, and 15th poll for that reel. Each
+ * attempt asks the backend to query Mux directly and patch the doc — once it
+ * succeeds, polling sees `ready` and stops. The reconcile call has its own
+ * server-side rate limit so this is safe even if we miscount.
  */
 export function useReel(reelId: string | null | undefined) {
   const { isAuthenticated } = useAuth();
-  return useQuery({
+  const qc = useQueryClient();
+  const pollCountRef = useRef<Map<string, number>>(new Map());
+  const inFlightRef = useRef<Set<string>>(new Set());
+
+  const query = useQuery({
     queryKey: REEL_KEYS.single(reelId ?? "__none__"),
     queryFn: () =>
       api.get<SingleReelResponse>(`/api/reels/${reelId}`),
@@ -124,6 +135,42 @@ export function useReel(reelId: string | null | undefined) {
         : false;
     },
   });
+
+  // Auto-reconcile trigger. Keyed on `dataUpdatedAt` so we count per
+  // successful poll, not per render. On a terminal state we wipe the
+  // counter so a subsequent stuck reel starts from zero.
+  const reel = query.data?.reel;
+  const reelStatus = reel?.status;
+  const focusedReelId = reel?.id;
+  const dataUpdatedAt = query.dataUpdatedAt;
+  useEffect(() => {
+    if (!focusedReelId) return;
+    const isPending =
+      reelStatus === "pending_upload" || reelStatus === "processing";
+    if (!isPending) {
+      pollCountRef.current.delete(focusedReelId);
+      inFlightRef.current.delete(focusedReelId);
+      return;
+    }
+    const count = (pollCountRef.current.get(focusedReelId) ?? 0) + 1;
+    pollCountRef.current.set(focusedReelId, count);
+    if (count !== 3 && count !== 8 && count !== 15) return;
+    if (inFlightRef.current.has(focusedReelId)) return;
+    inFlightRef.current.add(focusedReelId);
+    api
+      .post<SingleReelResponse>(`/api/reels/${focusedReelId}/reconcile`)
+      .then((resp) => {
+        qc.setQueryData(REEL_KEYS.single(focusedReelId), resp);
+      })
+      .catch(() => {
+        /* best-effort — surface nothing to the user; polling continues */
+      })
+      .finally(() => {
+        inFlightRef.current.delete(focusedReelId);
+      });
+  }, [focusedReelId, reelStatus, dataUpdatedAt, qc]);
+
+  return query;
 }
 
 export function useReelComments(reelId: string | null | undefined) {
@@ -145,6 +192,32 @@ export function useReelComments(reelId: string | null | undefined) {
       ),
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: isAuthenticated && !!reelId,
+  });
+}
+
+/**
+ * Manually reconcile a reel against Mux. Surface this on a "Sync" / "Retry"
+ * button when a reel has been processing too long — the user gets an
+ * immediate self-heal action instead of waiting for the auto-trigger in
+ * `useReel`. Updates the single-reel cache on success.
+ */
+export function useReconcileReel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reelId: string) =>
+      api.post<SingleReelResponse>(`/api/reels/${reelId}/reconcile`),
+    onSuccess: (data, reelId) => {
+      qc.setQueryData(REEL_KEYS.single(reelId), data);
+      // If the reconcile flipped status, the feeds may have stale rows.
+      // Cheap targeted invalidation rather than a global cache wipe.
+      if (data.reel.status === "ready" || data.reel.status === "errored") {
+        qc.invalidateQueries({ queryKey: REEL_KEYS.discover });
+        qc.invalidateQueries({ queryKey: REEL_KEYS.following });
+        qc.invalidateQueries({
+          queryKey: ["reels", "user", data.reel.userId],
+        });
+      }
+    },
   });
 }
 
