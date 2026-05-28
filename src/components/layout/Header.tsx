@@ -1,4 +1,4 @@
-import { ChevronLeft, Bell } from "lucide-react";
+import { ChevronLeft, Bell, MessageCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
@@ -45,9 +45,28 @@ export function Header({
       </div>
       <div className={styles.right}>
         {right}
+        {!hideBell ? <MessagesLink /> : null}
         {!hideBell ? <NotificationBell /> : null}
       </div>
     </header>
+  );
+}
+
+/**
+ * Messages got demoted from the bottom nav (the slot is now taken by the
+ * Create sheet trigger that lets the user pick between music-share and
+ * reels). Surface it as a header icon so it's still one tap from every
+ * screen that shows the header.
+ */
+function MessagesLink() {
+  return (
+    <Link
+      to="/messages"
+      className={styles.iconButton}
+      aria-label="Messages"
+    >
+      <MessageCircle size={20} aria-hidden />
+    </Link>
   );
 }
 

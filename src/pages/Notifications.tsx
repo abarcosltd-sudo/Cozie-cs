@@ -1,6 +1,13 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellOff, Check, Heart, MessageCircle, Music, UserPlus } from "lucide-react";
+import {
+  BellOff,
+  Check,
+  Heart,
+  MessageCircle,
+  Music,
+  UserPlus,
+} from "lucide-react";
 import {
   useNotifications,
   useMarkNotificationsRead,
@@ -32,6 +39,16 @@ function describe(n: AppNotification): string {
       return n.snapshot?.songTitle
         ? `liked your song “${n.snapshot.songTitle}”`
         : "liked your song";
+    case "reel_like":
+      // Backend `emitReelLike` sets `{ thumbnailUrl, songTitle }` in the
+      // snapshot — never `postCaption`. See `Cozie/services/notificationService.js`.
+      return n.snapshot?.songTitle
+        ? `liked your reel featuring “${n.snapshot.songTitle}”`
+        : "liked your reel";
+    case "reel_comment":
+      return n.snapshot?.commentText
+        ? `commented on your reel: “${n.snapshot.commentText}”`
+        : "commented on your reel";
     default:
       return "interacted with you";
   }
@@ -43,8 +60,10 @@ function iconFor(type: AppNotification["type"]) {
       return <UserPlus size={14} aria-hidden />;
     case "post_like":
     case "song_like":
+    case "reel_like":
       return <Heart size={14} aria-hidden />;
     case "post_comment":
+    case "reel_comment":
       return <MessageCircle size={14} aria-hidden />;
     default:
       return <Music size={14} aria-hidden />;
@@ -60,6 +79,8 @@ function destination(n: AppNotification): string | null {
       return "/home-feed";
     case "song":
       return `/play-music`;
+    case "reel":
+      return `/reels/${n.targetId}`;
     default:
       return null;
   }

@@ -155,6 +155,31 @@
   text-align: center;
 }
 
+/* Reel tiles get a tiny play+view-count overlay so they're visually
+   distinct from the music-post grid (which shares the same container). */
+.gridItem {
+  position: relative;
+}
+
+.reelTileBadge {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.gridLoadMore {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 6px;
+}
+
 .likedList {
   list-style: none;
   margin: 0;

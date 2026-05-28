@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Heart, ListMusic, LogOut, Music, Settings } from "lucide-react";
+import { Film, Heart, ListMusic, LogOut, Music, Play, Settings } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
@@ -14,11 +14,12 @@ import {
   useUserLikedSongs,
   useUserPosts,
 } from "../hooks/useProfile";
+import { useUserReels } from "../hooks/useReels";
 import { ApiError } from "../lib/api";
-import type { MusicPost, MusicTrack, User } from "../types/api";
+import type { MusicPost, MusicTrack, Reel, User } from "../types/api";
 import styles from "./UserProfile.module.css";
 
-type Tab = "posts" | "playlists" | "liked";
+type Tab = "posts" | "reels" | "playlists" | "liked";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export default function UserProfile() {
 
   const posts = useUserPosts(effectiveUserId);
   const liked = useUserLikedSongs(effectiveUserId);
+  const reels = useUserReels(effectiveUserId);
 
   const [tab, setTab] = useState<Tab>("posts");
 
@@ -156,6 +158,12 @@ export default function UserProfile() {
           label="Posts"
         />
         <TabButton
+          active={tab === "reels"}
+          onClick={() => setTab("reels")}
+          icon={<Film size={16} aria-hidden />}
+          label="Reels"
+        />
+        <TabButton
           active={tab === "playlists"}
           onClick={() => setTab("playlists")}
           icon={<ListMusic size={16} aria-hidden />}
@@ -171,6 +179,12 @@ export default function UserProfile() {
 
       <div className={styles.tabPanel}>
         {tab === "posts" ? <PostsGrid query={posts} /> : null}
+        {tab === "reels" ? (
+          <ReelsGrid
+            query={reels}
+            onOpen={(reelId) => navigate(`/reels/${reelId}`)}
+          />
+        ) : null}
         {tab === "playlists" ? (
           <EmptyState
             icon={<ListMusic size={36} aria-hidden />}
@@ -181,6 +195,88 @@ export default function UserProfile() {
         {tab === "liked" ? <LikedGrid query={liked} /> : null}
       </div>
     </PageLayout>
+  );
+}
+
+/**
+ * 3-column thumbnail grid for a user's reels. Tapping a tile opens the
+ * single-reel viewer at `/reels/:reelId`, which then permits vertical swipe
+ * through the rest of the author's clips.
+ */
+function ReelsGrid({
+  query,
+  onOpen,
+}: {
+  query: ReturnType<typeof useUserReels>;
+  onOpen: (reelId: string) => void;
+}) {
+  if (query.isPending) {
+    return (
+      <div className={styles.loading}>
+        <Spinner /> Loading reels…
+      </div>
+    );
+  }
+  if (query.error) {
+    return (
+      <ErrorBox
+        variant="inline"
+        message="Couldn't load reels."
+        onRetry={() => query.refetch()}
+      />
+    );
+  }
+  const items: Reel[] = query.data?.pages.flatMap((p) => p.reels) ?? [];
+  if (!items.length) {
+    return (
+      <EmptyState
+        icon={<Film size={36} aria-hidden />}
+        title="No reels yet"
+        description="Share a clip to fill this grid."
+      />
+    );
+  }
+  return (
+    <>
+      <div className={styles.grid}>
+        {items.map((reel) => (
+          <button
+            key={reel.id}
+            type="button"
+            className={styles.gridItem}
+            style={{
+              backgroundImage: reel.thumbnailUrl
+                ? `url(${reel.thumbnailUrl})`
+                : undefined,
+            }}
+            aria-label={`Open reel${reel.caption ? `: ${reel.caption}` : ""}`}
+            onClick={() => onOpen(reel.id)}
+          >
+            {!reel.thumbnailUrl ? (
+              <div className={styles.gridFallback}>
+                <Film size={22} aria-hidden />
+              </div>
+            ) : null}
+            <span className={styles.reelTileBadge}>
+              <Play size={12} aria-hidden fill="currentColor" />
+              <span>{reel.viewCount.toLocaleString()}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {query.hasNextPage ? (
+        <div className={styles.gridLoadMore}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => query.fetchNextPage()}
+            loading={query.isFetchingNextPage}
+          >
+            Load more
+          </Button>
+        </div>
+      ) : null}
+    </>
   );
 }
 
