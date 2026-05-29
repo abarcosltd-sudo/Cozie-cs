@@ -335,6 +335,30 @@ export async function mergeVideoWithMusic(job: MergeJob): Promise<File> {
     return result;
   } catch (err) {
     const aborted = job.signal?.aborted === true;
+    // Promote whatever was thrown (often an ErrorEvent / raw string from
+    // the FFmpeg worker) into a real Error so the UI + logs see useful
+    // detail instead of the catch-all "Couldn't bake the music in".
+    const normalized = aborted
+      ? new MergeAbortError()
+      : err instanceof MergeDurationMismatchError
+        ? err
+        : err instanceof MergeAbortError
+          ? err
+          : asError(err, `stage=${stage}`);
+    if (!aborted) {
+      console.error("[videoMerge] merge failed", {
+        stage,
+        usedLibx264,
+        rawType: typeof err,
+        rawCtor:
+          err && typeof err === "object"
+            ? (err as { constructor?: { name?: string } }).constructor?.name
+            : null,
+        raw: err,
+        normalizedMessage: normalized.message,
+        ffmpegLogTail: logBuffer.slice(-20).join("\n"),
+      });
+    }
     track("reel_merge_failed", {
       durMs: Math.round(performance.now() - t0),
       stage,
@@ -342,12 +366,10 @@ export async function mergeVideoWithMusic(job: MergeJob): Promise<File> {
       aborted,
       reason: aborted
         ? "abort"
-        : err instanceof MergeDurationMismatchError
-        ? "duration_mismatch"
-        : err instanceof Error
-        ? err.name
-        : "unknown",
-      message: err instanceof Error ? err.message.slice(0, 200) : null,
+        : normalized instanceof MergeDurationMismatchError
+          ? "duration_mismatch"
+          : normalized.name,
+      message: normalized.message.slice(0, 200),
     });
 
     // If the worker booted before we threw, destroy it so the next merge
@@ -363,7 +385,7 @@ export async function mergeVideoWithMusic(job: MergeJob): Promise<File> {
     }
 
     if (aborted) throw new MergeAbortError();
-    throw err;
+    throw normalized;
   } finally {
     if (onAbort) job.signal?.removeEventListener("abort", onAbort);
   }
@@ -385,9 +407,47 @@ interface SingletonState {
   ffmpeg: FFmpeg | null;
   loading: Promise<FFmpeg> | null;
   alive: boolean;
+  /** Force ST core on next load attempt. Set after an MT load fails. */
+  forceSt: boolean;
 }
 
-const state: SingletonState = { ffmpeg: null, loading: null, alive: false };
+const state: SingletonState = {
+  ffmpeg: null,
+  loading: null,
+  alive: false,
+  forceSt: false,
+};
+
+/**
+ * Coerce anything thrown into a real Error so callers can rely on
+ * `.message` / `.name` and our analytics + UI surface useful detail. The
+ * @ffmpeg/ffmpeg worker often rejects with ErrorEvent / MessageEvent /
+ * raw strings, which our `instanceof Error` checks silently miss.
+ */
+function asError(value: unknown, prefix: string): Error {
+  if (value instanceof Error) return value;
+  if (typeof value === "string") return new Error(`${prefix}: ${value}`);
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const ctor =
+      (obj.constructor as { name?: string } | undefined)?.name ?? "Object";
+    const msg =
+      typeof obj.message === "string"
+        ? obj.message
+        : typeof obj.reason === "string"
+          ? obj.reason
+          : typeof obj.data === "string"
+            ? obj.data
+            : null;
+    if (msg) return new Error(`${prefix}: ${ctor}: ${msg}`);
+    try {
+      return new Error(`${prefix}: ${ctor}: ${JSON.stringify(value).slice(0, 200)}`);
+    } catch {
+      return new Error(`${prefix}: ${ctor}`);
+    }
+  }
+  return new Error(`${prefix}: ${String(value)}`);
+}
 
 async function ensureFfmpeg(): Promise<FFmpeg> {
   if (state.ffmpeg && state.alive) return state.ffmpeg;
@@ -400,32 +460,47 @@ async function ensureFfmpeg(): Promise<FFmpeg> {
   // saw the same rejection forever, forcing a tab reload to recover.
   state.loading = (async () => {
     try {
-      const ffmpeg = new FFmpeg();
-      // Pipe ffmpeg's stderr into a buffer so probeDurationSec() can parse
-      // the "Duration:" lines without us needing a real ffprobe binary.
-      ffmpeg.on("log", ({ message }) => {
-        logBuffer.push(message);
-        // Trim the log buffer so it can't grow without bound on long sessions.
-        if (logBuffer.length > 5000) logBuffer.splice(0, 2000);
-      });
-
       const useMt =
-        typeof window !== "undefined" && window.crossOriginIsolated;
-      const base = useMt ? "/ffmpeg/mt" : "/ffmpeg/st";
-      const loadConfig: {
-        coreURL: string;
-        wasmURL: string;
-        workerURL?: string;
-      } = {
-        coreURL: `${base}/ffmpeg-core.js`,
-        wasmURL: `${base}/ffmpeg-core.wasm`,
-      };
-      if (useMt) loadConfig.workerURL = `${base}/ffmpeg-core.worker.js`;
-
-      await ffmpeg.load(loadConfig);
-      state.ffmpeg = ffmpeg;
-      state.alive = true;
-      return ffmpeg;
+        !state.forceSt &&
+        typeof window !== "undefined" &&
+        window.crossOriginIsolated;
+      try {
+        return await loadCore(useMt);
+      } catch (err) {
+        // Surface the raw worker reject so we can finally see what
+        // ffmpeg.wasm is choking on in prod.
+        const wrapped = asError(err, `ffmpeg.load(${useMt ? "mt" : "st"})`);
+        console.error("[videoMerge] load failed", {
+          useMt,
+          rawType: typeof err,
+          rawCtor:
+            err && typeof err === "object"
+              ? (err as { constructor?: { name?: string } }).constructor?.name
+              : null,
+          raw: err,
+          wrappedMessage: wrapped.message,
+        });
+        if (useMt) {
+          // MT path failed (often: SAB allocation refused, worker crash,
+          // missing fields on the worker globalThis, etc). Retry with the
+          // single-thread core which has the smallest possible footprint.
+          // Sticky `forceSt` ensures subsequent loads also skip MT until
+          // the tab reloads, avoiding a flap.
+          console.warn("[videoMerge] retrying with single-thread core");
+          state.forceSt = true;
+          try {
+            return await loadCore(false);
+          } catch (stErr) {
+            const stWrapped = asError(stErr, "ffmpeg.load(st-fallback)");
+            console.error("[videoMerge] ST fallback also failed", {
+              raw: stErr,
+              wrappedMessage: stWrapped.message,
+            });
+            throw stWrapped;
+          }
+        }
+        throw wrapped;
+      }
     } finally {
       // Always clear so the next caller retries on failure / reuses the
       // populated `state.ffmpeg` on success.
@@ -434,6 +509,33 @@ async function ensureFfmpeg(): Promise<FFmpeg> {
   })();
 
   return state.loading;
+}
+
+async function loadCore(useMt: boolean): Promise<FFmpeg> {
+  const ffmpeg = new FFmpeg();
+  // Pipe ffmpeg's stderr into a buffer so probeDurationSec() can parse
+  // the "Duration:" lines without us needing a real ffprobe binary.
+  ffmpeg.on("log", ({ message }) => {
+    logBuffer.push(message);
+    // Trim the log buffer so it can't grow without bound on long sessions.
+    if (logBuffer.length > 5000) logBuffer.splice(0, 2000);
+  });
+
+  const base = useMt ? "/ffmpeg/mt" : "/ffmpeg/st";
+  const loadConfig: {
+    coreURL: string;
+    wasmURL: string;
+    workerURL?: string;
+  } = {
+    coreURL: `${base}/ffmpeg-core.js`,
+    wasmURL: `${base}/ffmpeg-core.wasm`,
+  };
+  if (useMt) loadConfig.workerURL = `${base}/ffmpeg-core.worker.js`;
+
+  await ffmpeg.load(loadConfig);
+  state.ffmpeg = ffmpeg;
+  state.alive = true;
+  return ffmpeg;
 }
 
 async function wipeFs(ffmpeg: FFmpeg): Promise<void> {
