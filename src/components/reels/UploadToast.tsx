@@ -12,7 +12,13 @@
  * sight of it just because they navigated to Discover.
  */
 import { useNavigate } from "react-router-dom";
-import { X, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Film,
+  Loader2,
+  X,
+} from "lucide-react";
 import { useUpload } from "../../contexts/UploadContext";
 import styles from "./UploadToast.module.css";
 
@@ -22,9 +28,24 @@ export function UploadToast() {
 
   if (!current) return null;
 
-  const { phase, progress, fileName, previewUrl, reelId, errorMessage } =
-    current;
+  const { phase, progress, fileName, reelId, errorMessage } = current;
   const pct = progress === null ? null : Math.round(progress * 100);
+
+  // Phase-driven thumbnail content. We deliberately do NOT try to render
+  // the upload's blob URL as an `<img>` — browsers can't decode a video
+  // blob through an image element, which is why the toast used to show a
+  // broken-image glyph. An icon avatar with a subtle gradient looks
+  // cleaner and always renders.
+  const thumbIcon =
+    phase === "ready" ? (
+      <CheckCircle2 size={22} aria-hidden />
+    ) : phase === "errored" ? (
+      <AlertCircle size={22} aria-hidden />
+    ) : phase === "queued" ? (
+      <Film size={20} aria-hidden />
+    ) : (
+      <Loader2 size={22} aria-hidden className={styles.spin} />
+    );
 
   return (
     <div
@@ -32,17 +53,12 @@ export function UploadToast() {
       role="status"
       aria-live="polite"
     >
-      {previewUrl ? (
-        <img
-          src={previewUrl}
-          alt=""
-          className={styles.thumb}
-          // No `loading=lazy`: the toast wants the thumbnail synchronously.
-          decoding="async"
-        />
-      ) : (
-        <span className={styles.thumb} aria-hidden />
-      )}
+      <span
+        className={`${styles.thumb} ${styles[`thumb_${phase}`] || ""}`}
+        aria-hidden
+      >
+        {thumbIcon}
+      </span>
       <div className={styles.body}>
         <div className={styles.title}>
           {phase === "uploading" && "Uploading reel…"}

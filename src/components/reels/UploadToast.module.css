@@ -18,14 +18,72 @@
   backdrop-filter: blur(8px);
 }
 
+/* Compact phase-icon avatar. Replaces the original `<img>` preview that
+   never actually rendered (video blob URLs can't be decoded by `<img>`).
+   Always-visible gradient + centered phase icon keeps the toast tidy
+   across every state. */
 .thumb {
   width: 44px;
   height: 56px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #2d1b3d 0%, #1a1d29 100%);
-  object-fit: cover;
+  background: linear-gradient(135deg, #6b21a8 0%, #312044 60%, #1a1d29 100%);
   flex-shrink: 0;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5f5f5;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Subtle ambient pulse during long-lived processing states so the toast
+   feels alive without distracting motion. Disabled for reduced-motion
+   users below. */
+.thumb_queued,
+.thumb_uploading,
+.thumb_processing {
+  animation: thumbPulse 2.2s ease-in-out infinite;
+}
+
+.thumb_ready {
+  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+  color: #bbf7d0;
+}
+
+.thumb_errored {
+  background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%);
+  color: #fecaca;
+}
+
+.spin {
+  animation: spin 1.1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes thumbPulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 0 0 0 rgba(192, 132, 252, 0.0);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+      0 0 0 4px rgba(192, 132, 252, 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin,
+  .thumb_queued,
+  .thumb_uploading,
+  .thumb_processing {
+    animation: none;
+  }
 }
 
 .body {
