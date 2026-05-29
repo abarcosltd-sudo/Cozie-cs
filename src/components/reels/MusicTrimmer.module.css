@@ -1,0 +1,158 @@
+/* Music trimmer — two-handle range with live-preview audio.
+ *
+ * We stack two real <input type="range"> elements on top of each other
+ * for accessibility and free pointer-handling. They share a CSS track and
+ * are visually distinguished only by which thumb the user grabs. A
+ * `.selection` div between them shows the chosen window on the track.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 0.75rem;
+  background: var(--surface-bg, #fafafa);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.playBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #d4d4d8);
+  background: var(--surface-fg, #fff);
+  color: var(--text-primary, #111);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.playBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+
+.sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+}
+
+.subError {
+  font-size: 0.75rem;
+  color: var(--text-danger, #b91c1c);
+}
+
+/* --- Sliders -------------------------------------------------------- */
+
+.sliders {
+  position: relative;
+  height: 24px;
+}
+
+/* The shared track sits behind both range inputs. We render it via the
+ * inputs' own background, but because the inputs are stacked we paint
+ * the track once on the container so the .selection band stays aligned. */
+.sliders::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--border-color, #d4d4d8);
+  border-radius: 2px;
+}
+
+.selection {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--accent, #2563eb);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sliderStart,
+.sliderEnd {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  pointer-events: none; /* only thumbs receive pointer events */
+}
+
+/* Webkit thumbs */
+.sliderStart::-webkit-slider-thumb,
+.sliderEnd::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface-fg, #fff);
+  border: 2px solid var(--accent, #2563eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  margin-top: 0;
+}
+
+/* Firefox thumbs */
+.sliderStart::-moz-range-thumb,
+.sliderEnd::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface-fg, #fff);
+  border: 2px solid var(--accent, #2563eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+}
+
+/* Kill the default per-range track render — we paint our own via ::before */
+.sliderStart::-webkit-slider-runnable-track,
+.sliderEnd::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+}
+.sliderStart::-moz-range-track,
+.sliderEnd::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+}
+
+.hintError {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-danger, #b91c1c);
+}

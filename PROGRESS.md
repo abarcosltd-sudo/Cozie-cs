@@ -540,3 +540,109 @@ Planned in [`reels_frontend_slice_9f1aafda.plan.md`](../.cursor/plans/reels_fron
 - **🔴 Reels feed black-screen layout bug**: `PageLayout.module.css` `.shellDark` was `min-height: 100vh`, which does not establish a definite height for percentage-based children. The chain `<main flex:1>` → `.feed{height:100%}` → `.slot{height:100%}` → `.card{height:100%}` → `<video>{height:100%}` collapsed to 0, so the player rendered 768×0 and was both playing and invisible. Switched `.shellDark` to `height: 100vh; height: 100dvh;` and gave `.mainDark` `height: 100%`. Reels feed and detail viewer now render full-bleed on mobile and desktop.
 - **🟢 Stuck-reel self-heal**: added `POST /api/reels/:reelId/reconcile` on the backend and an auto-trigger inside `useReel` + `UploadContext` polling. When Mux's `video.upload.asset_created` / `video.asset.ready` webhook never delivers (the canonical reason a reel stays in `pending_upload` forever), the frontend asks the server to query Mux directly on the 3rd / 8th / 15th poll. The endpoint mirrors webhook semantics — playback id, duration, aspect ratio, thumbnail; over-cap detection deletes the asset and errors the doc the same way. Author-only; rate-limited (20/min/user). A `useReconcileReel()` mutation is exposed too if we add an explicit "Sync" button later. See `Cozie/scripts/reels-backfill-from-mux.js` for the bulk rescue path that runs the same service method for every stuck doc.
 
+---
+
+## Reels background music merge — 2026-05-29
+
+Bakes the picked song into the reel video client-side via `ffmpeg.wasm`, with a two-handle music-trimmer UI. The merged file flows through the existing direct-to-Mux upload pipeline unchanged — zero backend infra changes. Planned in [`reels_background_music_merge_106a0f7e.plan.md`](../.cursor/plans/reels_background_music_merge_106a0f7e.plan.md).
+
+### What the user gets
+- Pick a video → pick a song → drag a two-handle slider to pick the crop → tap Post.
+- The original video audio is silently dropped; the cropped (and, if needed, seamlessly looped) music is baked in for the full duration.
+- Live audio preview from the trimmer loops within the selected window, matching the eventual baked output.
+- "Music will loop seamlessly to fill the full video" hint shows whenever the crop is shorter than the clip.
+- iPhone HEVC clips get a non-blocking "processing takes longer" hint up front.
+- Cancel mid-merge via the overlay; `beforeunload` warning blocks accidental refresh.
+
+### Files added
+- `src/lib/videoMerge.ts` — singleton-lifecycle FFmpeg pipeline: master `DUR` reprobe via stderr, 3-pass (crop → loop → `apad+atrim+volume` final audio → mux), `-c:v copy` first with `-c:v libx264 -r 30` fallback, mandatory post-mux duration verification (hard-fails with `MergeDurationMismatchError` after one retry).
+- `src/components/reels/MusicTrimmer.tsx` (+ `.module.css`) — two `<input type="range">` thumbs stacked over a shared track, preview loop via `timeupdate`, MM:SS labels, HEAD-CORS pre-check that disables itself with a friendly message if the song URL isn't fetchable.
+- `src/components/reels/ComposePreparingOverlay.tsx` (+ `.module.css`) — stage-aware modal (load / probe / musicPrep / loop / audio / mux / verify), coarse progress bar, Cancel button (parent terminates the worker), `beforeunload` listener.
+- `scripts/copy-ffmpeg-core.mjs` — postinstall: copies `@ffmpeg/core` and `@ffmpeg/core-mt` UMD blobs into `public/ffmpeg/{st,mt}/` so the WASM core is served from our origin (required by COOP/COEP `require-corp`). Idempotent; runs on every `npm install`.
+- `public/ffmpeg/{st,mt}/` — single-thread + multi-thread cores. `.gitignore`d so the ~32 MB blobs never get committed.
+
+### Files modified
+- `src/pages/ComposeReel.tsx` — render the trimmer when video + song are both present; preload `ffmpeg.wasm` on the same condition (warms WASM during crop tweaks, not after Post); HEVC heuristic; submit path runs the merge first, then hands the merged `File` to the existing `useCreateReel` → `useUpload.start()` pipeline. On `MergeDurationMismatchError`, surfaces a one-tap "Post without music" CTA so we never silently strip the user's chosen audio without telling them. Filters out songs with `fileUrl === null` so the picker can't show an unplayable track.
+- `vercel.json` — scoped `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: credentialless` on `/compose/reel` only (so SAB / multi-thread WASM work without breaking Firebase auth iframes / Mux HLS player on other routes); `Cross-Origin-Resource-Policy: cross-origin` + `Cross-Origin-Embedder-Policy: require-corp` on `/ffmpeg/(.*)` so the cores load under the credentialless COEP context.
+- `package.json` — added `@ffmpeg/ffmpeg`, `@ffmpeg/util`, `@ffmpeg/core`, `@ffmpeg/core-mt`; added `postinstall` and `copy:ffmpeg` scripts.
+- `.gitignore` — `public/ffmpeg/` excluded.
+
+### Backend changes (single, surgical)
+- `Cozie/services/musicService.js` — `search()` response now includes `fileUrl` and `duration` per song, so the reels composer can hand the song straight to the trimmer / merge without a second round trip. ShareMusic uses `Pick<MusicTrack, ...>` for its rows and is unaffected by the extra fields.
+
+### Bundle impact
+- Critical-path `index-*.js`: **421.91 KB / 132.22 KB gzipped** — unchanged from the previous slice (no ffmpeg deps reach it).
+- `ComposeReel-*.js` chunk: **22.88 KB / 8.76 KB gzipped** (up from ~6 KB — the trimmer, overlay, merge driver, and `@ffmpeg/ffmpeg` wrapper).
+- `ffmpeg-core.wasm` blobs sit at `/ffmpeg/{st,mt}/ffmpeg-core.wasm` (~32 MB each) and are fetched ONLY when the user is on `/compose/reel` AND has picked both a video and a song. Cached aggressively by the browser, so subsequent merges in the same session reuse the worker.
+- `Reels.module-*.js` is unchanged at **537.44 KB / 168.16 KB gzipped** (still hls.js + reel runtime; nothing new in here).
+
+### Bug-vs-defence cross-reference (mirrors plan §9)
+| Reference bug | Cause | Where the defence lives |
+|---|---|---|
+| #1 "Music ends before video" | `-stream_loop` + missing `apad` + missing `-t` cap | Concat-demuxer pre-loop with `floor(DUR/musicDur)+2` repeats; Pass B's `apad=whole_dur=DUR` runs BEFORE `atrim`; `-t DUR` on every output; mandatory post-mux duration probe with one auto-retry |
+| #2 "AAC priming drift" | `-c copy` on an audio stream we just trimmed | Every audio pass re-encodes (mp3 then aac); we never `-c copy` audio |
+| #3 "Per-segment length mismatch" | Planned vs actual duration drift | Master `DUR = min(<video>.duration, ffmpeg-stderr-Duration)`; single source of truth threaded through every `-t` and `atrim=duration=...` |
+| #4 "Muxed output wrong" | Negative timestamps, missing `-t` cap, missing fast-start | Pass C carries all four flags: `-t DUR`, `-shortest`, `-avoid_negative_ts make_zero`, `-movflags +faststart` |
+| #5 "Music plays during silent intro" | Missing PTS rebase | `asetpts=PTS-STARTPTS` in Pass B's filter chain |
+
+### Singleton + cancel lifecycle (the bits not obvious from reading the code)
+- `ensureFfmpeg()` is the only call site that creates a worker. Subsequent calls reuse the in-memory `FFmpeg` instance and skip the 30 MB WASM download.
+- `terminate()` (used by Cancel + by error-path cleanup) destroys the worker. We set `state.alive = false` so the NEXT merge call re-runs `load()` against a fresh worker. This avoids the "Cannot execute on terminated worker" trap that would otherwise hit on the first retry after a cancel.
+- Cancellation propagates via `AbortSignal`: ComposeReel owns an `AbortController`, hands its `.signal` to `mergeVideoWithMusic`, and calls `.abort()` from the overlay's Cancel button. We call `terminate()` immediately on abort so the in-flight `exec` halts; the actual `throw` happens at the next checkpoint and surfaces as `MergeAbortError`.
+
+### Bundled fix — broken song search
+- **Symptom**: typing in the song picker (on both `/compose/reel` and `/share-music`) always returned "No songs found".
+- **Root cause**: library docs predate the `titleLower` / `artistLower` migration that powers `musicRepository.findByTitlePrefix/findByArtistPrefix`. They were invisible to the prefix-range queries.
+- **Fix (Part 1, code, ships with this feature)**: `musicService.search()` now falls back to scanning up to 200 most-recent docs and filtering in-memory for `title.toLowerCase().includes(term) || artist.toLowerCase().includes(term)` when the prefix queries return zero. On any match it fire-and-forget writes `titleLower` / `artistLower` back so the next search hits the fast path (the library converges to fully-backfilled over time, no ops step needed).
+- **Fix (Part 2, ops, optional but cheap)**: run `npm run backfill music` (in `Cozie/`) once against production to populate `titleLower` / `artistLower` on every existing doc in one pass. Skips the 200-doc fallback scan for all known songs — useful for perf, not for correctness. Defensive fallback in Part 1 means this is no longer blocking.
+
+### Out of scope (carry-over follow-ups)
+- Waveform render in the trimmer (Wavesurfer.js or a custom canvas) — current preview is play/pause only.
+- Backend audio proxy (`GET /api/music/:songId/audio`) for songs hosted off Firebase Storage / outside our CORS allowlist; until then the trimmer's HEAD pre-check politely refuses non-CORS-friendly URLs.
+- Server-side FFmpeg fallback worker if mobile OOM failure rates are high (especially older iOS Safari).
+- A `audioSource` enum on the reel doc (`music | original | silent`) for analytics + a player-overlay badge.
+- Custom music upload from the device (library picks only today).
+- Video trim UI — reuse the same two-handle slider; target file is `user_video_raw.mp4`; add a Phase 0 ffmpeg crop call before Pass A.
+- `videoMerge.spec.ts` regression guard — the plan §6 mentions vitest, but vitest isn't installed in this project yet. Adding it pulls in a non-trivial dependency just for one gated FFmpeg-WASM smoke test. Track separately when we wire up the broader test infra.
+
+### Review-pass hardening (2026-05-29, same day)
+Resolved every "blocker before merge" + "nice-to-have" item from the senior-engineer review of this slice.
+
+- **🔴 `ensureFfmpeg()` rejection-trap fixed**: `state.loading` is now cleared in a `finally` inside the IIFE, so a failed `ffmpeg.load()` no longer leaves a permanently-rejected promise in the singleton cache. The next merge / preload attempt re-tries the load fresh; previously the user was stuck until they reloaded the tab.
+- **🔴 `mergeVideoWithMusic` load-failure path safe**: the try/catch now wraps the entire body including `await ensureFfmpeg()`. The catch guards `terminate()` on `if (ffmpeg)` so a load failure (where the worker never booted) can't double-throw on cleanup. Documented failure semantics in the function docblock (`MergeAbortError` / `MergeDurationMismatchError` / generic `Error`).
+- **🔴 Firebase Storage CORS config shipped in-repo**: added `Cozie/storage.cors.json` (origins: localhost dev + both vercel deploys; methods: GET, HEAD; standard response headers; 1 h cache) and a no-dependency Node script `Cozie/scripts/storage-cors.mjs` using the existing `firebase-admin` + `FRONTEND_FIREBASE_SERVICE_ACCOUNT` env. Wired three npm scripts: `npm run storage:cors:apply` (one-shot setter), `npm run storage:cors:verify` (read-only inspection), `npm run storage:cors:diff` (CI-friendly drift detection; exit 2 on mismatch). **Run `npm run storage:cors:apply` once against production before enabling music-merge for users** — without it the trimmer's HEAD pre-check will mark every song unavailable. The script is idempotent; safe to re-run.
+- **🟡 Analytics primitive + merge metrics**: added `Cozie-cs/src/lib/analytics.ts` — a tiny `track(event, props)` surface that no-ops by default, optionally registers a handler (`setAnalyticsHandler`), and bridges to `window.posthog?.capture` when present. `videoMerge.ts` now emits `reel_merge_completed` (with `durMs`, `masterDurSec`, `usedLibx264`, `crossOriginIsolated`, `videoBytes`, `outBytes`) and `reel_merge_failed` (with `durMs`, `stage`, `usedLibx264`, `aborted`, `reason`, truncated `message`). Wire a real handler whenever PostHog / Mixpanel lands; until then dev builds mirror to `console.debug` and prod is silent.
+- **🟡 Feature flag**: `VITE_ENABLE_MUSIC_MERGE` (default `true`) read via `Cozie-cs/src/lib/featureFlags.ts`. When `false`: the MusicTrimmer doesn't render, the preload is skipped, the WASM cores are never fetched, and the submit path always uploads the raw video while still attributing the picked `songId`. Kill switch for the rare case where a mobile cohort regresses; flipping the env in Vercel disables the surface without a code revert. Documented in `.env.example`.
+- **🟡 Dead-code cleanup**: removed unused `MusicTrack` import + dead `export type { MusicTrack }` from `ComposeReel.tsx`; tightened the `ffmpeg.readFile` result handling in `videoMerge.ts` to a single `as Uint8Array` assertion (the old `instanceof Uint8Array ? out : TextEncoder.encode(String(out))` branch was unreachable and would have produced garbled bytes if hit).
+- **🟡 Vercel header source widened**: `/compose/reel` → `/compose/reel(/.*)?` so any future sub-route (e.g., `/compose/reel/edit/:id`) inherits COOP/COEP without us re-noticing the gap.
+- **🟡 Defensive trim clamps**: `videoMerge.mergeVideoWithMusic` now clamps `musicStartSec` ≥ 0 and `musicEndSec` ≥ start + 50 ms regardless of caller input. The trimmer already enforces these in the UI; this is belt-and-braces for any future call sites.
+- **🟢 `fetchFile` simplification**: replaced the manual `new Uint8Array(await job.video.arrayBuffer())` round-trip with `fetchFile(job.video)` for symmetry with the music load and a smaller momentary heap.
+
+#### Pre-rollout checklist (must complete before flipping `VITE_ENABLE_MUSIC_MERGE` on for users)
+1. `cd Cozie && npm run storage:cors:apply` against production (uses `FRONTEND_FIREBASE_SERVICE_ACCOUNT`).
+2. `npm run storage:cors:verify` and confirm the rule list matches `storage.cors.json`.
+3. Manually verify in a private window: open the live frontend, pick a video + a song, confirm the MusicTrimmer renders (no "song can't be used" message), drag the slider, hit Post, watch the merge run, confirm the resulting Mux reel plays full-length with the picked music.
+4. Watch the analytics handler (once wired) or browser console (in a dev build) for `reel_merge_completed` / `reel_merge_failed` events on the first ~50 merges. Investigate any non-zero `_failed` rate.
+5. Keep `VITE_ENABLE_MUSIC_MERGE=true` only after steps 1–4 are green.
+
+### Verification (post-slice)
+- `npx tsc --noEmit -p tsconfig.app.json` → exit 0
+- `npx eslint src/lib/videoMerge.ts src/pages/ComposeReel.tsx src/components/reels/MusicTrimmer.tsx src/components/reels/ComposePreparingOverlay.tsx` → exit 0
+- `npm run build` → 1750 modules. Critical path unchanged; new code isolated in `ComposeReel-*.js` (22.88 KB / 8.76 KB gzipped). WASM cores ship under `dist/ffmpeg/{st,mt}/` and load only on demand.
+- `node --check Cozie/services/musicService.js` → exit 0
+
+### Manual verification matrix (run before production rollout)
+| Case | Input video | Music crop | What to check |
+|------|-------------|-----------|---------------|
+| 1 | 30 s 1080p MP4 (h264) | 0–15 s of 3 min song | Stream-copy path; output exactly 30.0 s; music loops cleanly |
+| 2 | 8 s clip | 0–20 s of 30 s song | Trim-longer-than-video branch |
+| 3 | 60 s clip | 0–10 s of 10 s song | Heavy loop; no boundary glitch |
+| 4 | iPhone HEVC .mov | Any | Forces libx264 fallback; HEVC hint shown |
+| 5 | Browser-recorded webm (vp9) | Any | Forces libx264 fallback from a different container |
+
+For each case: confirm Mux receives a single direct PUT of the merged MP4; in Mux dashboard, asset → `ready`; in the player, music plays full-length and the original audio is silent.
+
+Plus header checks:
+- `window.crossOriginIsolated === true` on `/compose/reel`; `false` everywhere else.
+- `/ffmpeg/mt/ffmpeg-core.wasm` returns CORP `cross-origin` + COEP `require-corp`.
+
