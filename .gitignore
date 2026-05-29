@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# ffmpeg.wasm core blobs — regenerated from npm by scripts/copy-ffmpeg-core.mjs
+# (postinstall). ~32 MB per file; never check the binaries in.
+public/ffmpeg/
+
 # Environment variables (real secrets); keep .env.example checked in
 .env
 .env.*
