@@ -300,6 +300,14 @@ export default function ComposeReel() {
       if (err instanceof MergeAbortError) {
         return; // user cancelled — nothing to surface
       }
+      console.error("[ComposeReel] merge failed", {
+        rawType: typeof err,
+        rawCtor:
+          err && typeof err === "object"
+            ? (err as { constructor?: { name?: string } }).constructor?.name
+            : null,
+        raw: err,
+      });
       if (err instanceof MergeDurationMismatchError) {
         setDurationMismatch(true);
         setMergeError(
@@ -308,7 +316,7 @@ export default function ComposeReel() {
         return;
       }
       setMergeError(
-        err instanceof Error
+        err instanceof Error && err.message
           ? err.message
           : "Couldn't bake the music in. Try a different song or post without music."
       );
