@@ -21,16 +21,30 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
+// IMPORTANT: copy from `dist/esm/`, not `dist/umd/`.
+//
+// @ffmpeg/ffmpeg@0.12 hardcodes `new Worker(url, { type: "module" })` for the
+// engine worker. In a module worker, `self.importScripts()` throws, so the
+// engine worker's LOAD handler falls through to `await import(coreURL).default`.
+// That dynamic-import path only resolves to the `createFFmpegCore` factory if
+// the served core JS is a proper ES module with `export default` — which the
+// UMD build is NOT (it's a self-executing UMD shim with no exports). Serving
+// UMD produces the silent "failed to import ffmpeg-core.js" reject we saw in
+// production.
+//
+// The .wasm payload is byte-identical between umd/ and esm/; only the JS
+// wrapper differs. The .worker.js (MT only) must match its sibling JS, so we
+// take all three from the ESM dir.
 const SOURCES = [
   {
     label: "single-thread",
-    from: join(ROOT, "node_modules", "@ffmpeg", "core", "dist", "umd"),
+    from: join(ROOT, "node_modules", "@ffmpeg", "core", "dist", "esm"),
     to: join(ROOT, "public", "ffmpeg", "st"),
     files: ["ffmpeg-core.js", "ffmpeg-core.wasm"],
   },
   {
     label: "multi-thread",
-    from: join(ROOT, "node_modules", "@ffmpeg", "core-mt", "dist", "umd"),
+    from: join(ROOT, "node_modules", "@ffmpeg", "core-mt", "dist", "esm"),
     to: join(ROOT, "public", "ffmpeg", "mt"),
     files: ["ffmpeg-core.js", "ffmpeg-core.wasm", "ffmpeg-core.worker.js"],
   },
