@@ -24,7 +24,7 @@ import {
   useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Film } from "lucide-react";
+import { Film, Trash2 } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorBox } from "../components/ui/ErrorBox";
@@ -32,7 +32,9 @@ import { Spinner } from "../components/ui/Spinner";
 import { ReelCard } from "../components/reels/ReelCard";
 import { ReelCommentsSheet } from "../components/reels/ReelCommentsSheet";
 import { ReelShareSheet } from "../components/reels/ReelShareSheet";
+import { useAuth } from "../contexts/AuthContext";
 import {
+  useDeleteReel,
   useReel,
   useRegisterReelView,
   useToggleReelLike,
@@ -49,10 +51,12 @@ const VISIBILITY_THRESHOLD = 0.75;
 export default function ReelDetail() {
   const { reelId } = useParams<{ reelId: string }>();
   const navigate = useNavigate();
+  const { user: me } = useAuth();
   const focused = useReel(reelId);
   const userReelsQuery = useUserReels(focused.data?.reel.userId);
   const registerView = useRegisterReelView();
   const toggleLike = useToggleReelLike();
+  const deleteReel = useDeleteReel();
 
   // Build a single ordered list with the focused reel at the front when
   // appropriate. If the author has more reels we splice them in after.
@@ -146,6 +150,43 @@ export default function ReelDetail() {
     setShareReel(reel);
   }, []);
 
+  const activeReel = reels[activeIndex];
+  const canDeleteActive = Boolean(
+    activeReel && me?.id && activeReel.userId === me.id
+  );
+  const handleDeleteActive = useCallback(() => {
+    if (!activeReel) return;
+    if (
+      !window.confirm(
+        "Delete this reel? This permanently removes the video and all its likes, views, and comments."
+      )
+    ) {
+      return;
+    }
+    deleteReel.mutate(activeReel.id, {
+      onSuccess: () => {
+        // After the active reel is gone we route the user somewhere
+        // sensible: prefer the next reel in the author's list (already
+        // in cache), otherwise fall back to their profile so they're
+        // not stranded on a now-empty detail page.
+        const remaining = reels.filter((r) => r.id !== activeReel.id);
+        const next = remaining[activeIndex] ?? remaining[activeIndex - 1];
+        if (next) {
+          navigate(`/reels/${next.id}`, { replace: true });
+        } else {
+          navigate(-1);
+        }
+      },
+      onError: (err) => {
+        window.alert(
+          err instanceof ApiError
+            ? err.message
+            : "Couldn't delete the reel. Please try again."
+        );
+      },
+    });
+  }, [activeReel, deleteReel, reels, activeIndex, navigate]);
+
   if (focused.isPending) {
     return (
       <PageLayout showBack hideBottomNav theme="dark">
@@ -197,6 +238,18 @@ export default function ReelDetail() {
       >
         ←
       </button>
+      {canDeleteActive ? (
+        <button
+          type="button"
+          className={detailStyles.deleteFab}
+          onClick={handleDeleteActive}
+          disabled={deleteReel.isPending}
+          aria-label="Delete reel"
+          title="Delete reel"
+        >
+          <Trash2 size={18} aria-hidden />
+        </button>
+      ) : null}
       <div
         className={styles.feed}
         role="feed"

@@ -26,6 +26,7 @@ import { useAuth } from "../contexts/AuthContext";
 import type {
   AddReelCommentResponse,
   CreateReelResponse,
+  DeleteReelResponse,
   Reel,
   ReelCommentsResponse,
   ReelFeedResponse,
@@ -280,6 +281,97 @@ function patchReelInCaches(
 }
 
 /**
+ * Snapshot of every cached slice that mentions a reel, captured BEFORE
+ * we optimistically remove it. We restore from this if the server delete
+ * fails so the tile pops back in place — same shape as the like/share
+ * burst snapshots above but extended to the user-feed infinite queries
+ * (which the like/share paths leave best-effort).
+ */
+interface ReelRemovalSnapshot {
+  discover: Array<[
+    readonly unknown[],
+    InfiniteData<ReelFeedResponse> | undefined
+  ]>;
+  following: ReelFeedResponse | undefined;
+  byUser: Array<[
+    readonly unknown[],
+    InfiniteData<ReelFeedResponse> | undefined
+  ]>;
+  single: SingleReelResponse | undefined;
+}
+
+/**
+ * Strip a single reel out of every cached list/single query. Used by
+ * `useDeleteReel`'s optimistic `onMutate`. We snapshot first so an error
+ * can restore byte-for-byte; the rollback path simply writes each
+ * snapshot back to its key. Mirrors the `patchReelInCaches` surface area
+ * so we can't drift between the two.
+ */
+function removeReelFromCaches(
+  qc: QueryClient,
+  reelId: string
+): ReelRemovalSnapshot {
+  const discover = qc.getQueriesData<InfiniteData<ReelFeedResponse>>({
+    queryKey: REEL_KEYS.discover,
+  });
+  const following = qc.getQueryData<ReelFeedResponse>(REEL_KEYS.following);
+  const byUser = qc.getQueriesData<InfiniteData<ReelFeedResponse>>({
+    queryKey: ["reels", "user"],
+  });
+  const single = qc.getQueryData<SingleReelResponse>(
+    REEL_KEYS.single(reelId)
+  );
+
+  qc.setQueriesData<InfiniteData<ReelFeedResponse>>(
+    { queryKey: REEL_KEYS.discover },
+    (data) =>
+      data
+        ? {
+            ...data,
+            pages: data.pages.map((p) => ({
+              ...p,
+              reels: p.reels.filter((r) => r.id !== reelId),
+              count: p.reels.filter((r) => r.id !== reelId).length,
+            })),
+          }
+        : data
+  );
+  qc.setQueriesData<ReelFeedResponse>(
+    { queryKey: REEL_KEYS.following },
+    (data) =>
+      data
+        ? {
+            ...data,
+            reels: data.reels.filter((r) => r.id !== reelId),
+            count: data.reels.filter((r) => r.id !== reelId).length,
+          }
+        : data
+  );
+  qc.setQueriesData<InfiniteData<ReelFeedResponse>>(
+    { queryKey: ["reels", "user"] },
+    (data) =>
+      data
+        ? {
+            ...data,
+            pages: data.pages.map((p) => ({
+              ...p,
+              reels: p.reels.filter((r) => r.id !== reelId),
+              count: p.reels.filter((r) => r.id !== reelId).length,
+            })),
+          }
+        : data
+  );
+  // NOTE: we deliberately do NOT remove the single-reel / comments caches
+  // here. If the caller is on `/reels/:reelId` for the reel being deleted,
+  // removing the cache would trigger an immediate refetch → 404 → flash
+  // of the "Could not load reel" page before the caller's onSuccess can
+  // navigate away. Single/comments cleanup happens in `onSettled` below,
+  // by which point the caller will have navigated.
+
+  return { discover, following, byUser, single };
+}
+
+/**
  * A "burst" is a sequence of concurrent like toggles on the same reel — most
  * commonly a frustrated double-tap or a stuck network that lets the second
  * click squeak through before the first settles. We track one pre-burst
@@ -463,6 +555,78 @@ export function useShareReel(reelId: string) {
       }
       if (ctx?.prevSingle) {
         qc.setQueryData(REEL_KEYS.single(reelId), ctx.prevSingle);
+      }
+    },
+  });
+}
+
+/**
+ * Author-only reel delete. Optimistically strips the reel from every
+ * cached feed and single-reel slot so the tile disappears immediately;
+ * on server error we restore the snapshot byte-for-byte and the tile
+ * pops back. On success we invalidate discover/following/byUser so
+ * counts and ordering re-converge with the server. Errors propagate to
+ * the caller's `.mutate(..., { onError })` so the UI can show a toast
+ * or alert without us coupling to a global notification system.
+ */
+export function useDeleteReel() {
+  const qc = useQueryClient();
+  return useMutation<
+    DeleteReelResponse,
+    Error,
+    string,
+    { snapshot: ReelRemovalSnapshot; authorId: string | undefined }
+  >({
+    mutationFn: (reelId) =>
+      api.delete<DeleteReelResponse>(`/api/reels/${reelId}`),
+    onMutate: async (reelId) => {
+      await qc.cancelQueries({ queryKey: REEL_KEYS.discover });
+      await qc.cancelQueries({ queryKey: REEL_KEYS.following });
+      await qc.cancelQueries({ queryKey: ["reels", "user"] });
+      await qc.cancelQueries({ queryKey: REEL_KEYS.single(reelId) });
+
+      const single = qc.getQueryData<SingleReelResponse>(
+        REEL_KEYS.single(reelId)
+      );
+      const authorId = single?.reel.userId;
+      const snapshot = removeReelFromCaches(qc, reelId);
+      return { snapshot, authorId };
+    },
+    onError: (_err, _reelId, ctx) => {
+      if (!ctx) return;
+      for (const [key, value] of ctx.snapshot.discover) {
+        if (value !== undefined) qc.setQueryData(key, value);
+      }
+      if (ctx.snapshot.following !== undefined) {
+        qc.setQueryData(REEL_KEYS.following, ctx.snapshot.following);
+      }
+      for (const [key, value] of ctx.snapshot.byUser) {
+        if (value !== undefined) qc.setQueryData(key, value);
+      }
+      // No restore needed for single/comments: `onMutate` deliberately
+      // does NOT touch those caches (see the note in `removeReelFromCaches`),
+      // so they still hold the pre-delete data. The `onSettled` purge
+      // below is gated on `data?.deleted`, so it's a no-op on error.
+    },
+    onSettled: (data, _err, reelId, ctx) => {
+      qc.invalidateQueries({ queryKey: REEL_KEYS.discover });
+      qc.invalidateQueries({ queryKey: REEL_KEYS.following });
+      if (ctx?.authorId) {
+        qc.invalidateQueries({ queryKey: REEL_KEYS.byUser(ctx.authorId) });
+      } else {
+        // Author id unknown (single cache was already empty) — fall back
+        // to a broader prefix invalidation so any open profile reel grid
+        // reconciles. Cheap because it only touches the reels namespace.
+        qc.invalidateQueries({ queryKey: ["reels", "user"] });
+      }
+      // Only purge the single-reel / comments caches once the delete has
+      // actually succeeded on the server. On success the caller will
+      // have navigated away by now, so this is a safe sweep; on error
+      // we leave the single cache alone so the user can still see what
+      // they tried to delete.
+      if (data?.deleted) {
+        qc.removeQueries({ queryKey: REEL_KEYS.single(reelId) });
+        qc.removeQueries({ queryKey: REEL_KEYS.comments(reelId) });
       }
     },
   });

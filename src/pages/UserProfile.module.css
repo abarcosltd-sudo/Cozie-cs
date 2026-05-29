@@ -140,6 +140,7 @@
   background-color: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   padding: 0;
+  position: relative;
 }
 
 .gridFallback {
@@ -155,12 +156,6 @@
   text-align: center;
 }
 
-/* Reel tiles get a tiny play+view-count overlay so they're visually
-   distinct from the music-post grid (which shares the same container). */
-.gridItem {
-  position: relative;
-}
-
 .reelTileBadge {
   position: absolute;
   bottom: 4px;
@@ -172,6 +167,58 @@
   font-size: 0.72rem;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* Wrapper around an owner-only reel tile so we can sit the delete
+   button as a sibling (not nested) inside the tappable thumbnail. The
+   thumbnail itself keeps its `.gridItem` styles unchanged so the rest
+   of the profile grid (posts, etc.) doesn't shift. */
+.reelTileWrap {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.reelTileWrap > .gridItem {
+  width: 100%;
+  height: 100%;
+}
+
+/* Destructive overlay shown only on the profile owner's own reels. We
+   use a semi-opaque background so it stays legible over thumbnails of
+   any color; tap target stays ≥ 28px to satisfy touch accessibility. */
+.reelDeleteBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+  z-index: 1;
+}
+
+.reelDeleteBtn:hover,
+.reelDeleteBtn:focus-visible {
+  background: rgba(220, 38, 38, 0.85);
+  outline: none;
+}
+
+.reelDeleteBtn:active {
+  transform: scale(0.92);
+}
+
+.reelDeleteBtn:disabled {
+  opacity: 0.5;
+  cursor: progress;
 }
 
 .gridLoadMore {

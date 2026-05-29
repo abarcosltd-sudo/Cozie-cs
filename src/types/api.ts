@@ -187,6 +187,12 @@ export interface AddReelCommentResponse {
   comment: ReelComment;
 }
 
+export interface DeleteReelResponse {
+  deleted: true;
+  reelId: string;
+  message?: string;
+}
+
 export interface Conversation {
   id: string;
   otherUserId: string;

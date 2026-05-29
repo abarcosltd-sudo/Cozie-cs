@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Film, Heart, ListMusic, LogOut, Music, Play, Settings } from "lucide-react";
+import {
+  Film,
+  Heart,
+  ListMusic,
+  LogOut,
+  Music,
+  Play,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
@@ -14,7 +23,7 @@ import {
   useUserLikedSongs,
   useUserPosts,
 } from "../hooks/useProfile";
-import { useUserReels } from "../hooks/useReels";
+import { useDeleteReel, useUserReels } from "../hooks/useReels";
 import { ApiError } from "../lib/api";
 import type { MusicPost, MusicTrack, Reel, User } from "../types/api";
 import styles from "./UserProfile.module.css";
@@ -182,6 +191,7 @@ export default function UserProfile() {
         {tab === "reels" ? (
           <ReelsGrid
             query={reels}
+            canDelete={isSelf}
             onOpen={(reelId) => navigate(`/reels/${reelId}`)}
           />
         ) : null}
@@ -201,15 +211,22 @@ export default function UserProfile() {
 /**
  * 3-column thumbnail grid for a user's reels. Tapping a tile opens the
  * single-reel viewer at `/reels/:reelId`, which then permits vertical swipe
- * through the rest of the author's clips.
+ * through the rest of the author's clips. When `canDelete` is true (the
+ * profile owner is viewing their own grid) each tile gets a trash overlay
+ * that runs `useDeleteReel` after a `window.confirm` — same lightweight
+ * confirmation pattern as the messages screen.
  */
 function ReelsGrid({
   query,
+  canDelete,
   onOpen,
 }: {
   query: ReturnType<typeof useUserReels>;
+  canDelete: boolean;
   onOpen: (reelId: string) => void;
 }) {
+  const deleteReel = useDeleteReel();
+
   if (query.isPending) {
     return (
       <div className={styles.loading}>
@@ -236,32 +253,73 @@ function ReelsGrid({
       />
     );
   }
+
+  const handleDelete = (reelId: string) => {
+    if (
+      !window.confirm(
+        "Delete this reel? This permanently removes the video and all its likes, views, and comments."
+      )
+    ) {
+      return;
+    }
+    deleteReel.mutate(reelId, {
+      onError: (err) => {
+        window.alert(
+          err instanceof ApiError
+            ? err.message
+            : "Couldn't delete the reel. Please try again."
+        );
+      },
+    });
+  };
+
   return (
     <>
       <div className={styles.grid}>
         {items.map((reel) => (
-          <button
-            key={reel.id}
-            type="button"
-            className={styles.gridItem}
-            style={{
-              backgroundImage: reel.thumbnailUrl
-                ? `url(${reel.thumbnailUrl})`
-                : undefined,
-            }}
-            aria-label={`Open reel${reel.caption ? `: ${reel.caption}` : ""}`}
-            onClick={() => onOpen(reel.id)}
-          >
-            {!reel.thumbnailUrl ? (
-              <div className={styles.gridFallback}>
-                <Film size={22} aria-hidden />
-              </div>
+          <div key={reel.id} className={styles.reelTileWrap}>
+            <button
+              type="button"
+              className={styles.gridItem}
+              style={{
+                backgroundImage: reel.thumbnailUrl
+                  ? `url(${reel.thumbnailUrl})`
+                  : undefined,
+              }}
+              aria-label={`Open reel${
+                reel.caption ? `: ${reel.caption}` : ""
+              }`}
+              onClick={() => onOpen(reel.id)}
+            >
+              {!reel.thumbnailUrl ? (
+                <div className={styles.gridFallback}>
+                  <Film size={22} aria-hidden />
+                </div>
+              ) : null}
+              <span className={styles.reelTileBadge}>
+                <Play size={12} aria-hidden fill="currentColor" />
+                <span>{reel.viewCount.toLocaleString()}</span>
+              </span>
+            </button>
+            {canDelete ? (
+              <button
+                type="button"
+                className={styles.reelDeleteBtn}
+                aria-label="Delete reel"
+                title="Delete reel"
+                disabled={
+                  deleteReel.isPending &&
+                  deleteReel.variables === reel.id
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(reel.id);
+                }}
+              >
+                <Trash2 size={14} aria-hidden />
+              </button>
             ) : null}
-            <span className={styles.reelTileBadge}>
-              <Play size={12} aria-hidden fill="currentColor" />
-              <span>{reel.viewCount.toLocaleString()}</span>
-            </span>
-          </button>
+          </div>
         ))}
       </div>
       {query.hasNextPage ? (
