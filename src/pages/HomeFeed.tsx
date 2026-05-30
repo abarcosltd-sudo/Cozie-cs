@@ -1,6 +1,6 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Music, Share2, MoreHorizontal, Send } from "lucide-react";
+import { Heart, MessageCircle, Music, Share2, MoreHorizontal } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
@@ -9,12 +9,17 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Spinner } from "../components/ui/Spinner";
 import { Modal } from "../components/ui/Modal";
 import {
+  CommentThread,
+  CommentComposer,
+} from "../components/comments/CommentThread";
+import {
   useFollowingFeed,
   useTogglePostLike,
   usePostComments,
+  usePostCommentReplies,
   useAddComment,
+  useTogglePostCommentLike,
 } from "../hooks/useFeed";
-import { useAuth } from "../contexts/AuthContext";
 import { ApiError } from "../lib/api";
 import type { MusicPost } from "../types/api";
 import styles from "./HomeFeed.module.css";
@@ -209,99 +214,38 @@ interface CommentsModalProps {
 }
 
 function CommentsModal({ post, onClose }: CommentsModalProps) {
-  const { user } = useAuth();
+  const postId = post?.id ?? "";
   const comments = usePostComments(post?.id ?? null);
-  const addComment = useAddComment(post?.id ?? "");
-  const [text, setText] = useState("");
-
-  const submit = async () => {
-    const trimmed = text.trim();
-    if (!trimmed || !post) return;
-    setText("");
-    try {
-      await addComment.mutateAsync(trimmed);
-    } catch {
-      setText(trimmed);
-    }
-  };
-
-  const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void submit();
-    }
-  };
+  const addCommentMut = useAddComment(postId);
+  const toggleLikeMut = useTogglePostCommentLike(postId);
 
   return (
     <Modal
       open={!!post}
       title="Comments"
-      onClose={() => {
-        setText("");
-        onClose();
-      }}
+      onClose={onClose}
       footer={
-        <>
-          <textarea
-            className={styles.commentInput}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Write a comment…"
-            rows={2}
-            disabled={addComment.isPending}
-            aria-label="Write a comment"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={submit}
-            disabled={!text.trim()}
-            loading={addComment.isPending}
-            leftIcon={<Send size={14} aria-hidden />}
-          >
-            Post
-          </Button>
-        </>
+        <CommentComposer
+          isPending={addCommentMut.isPending}
+          onSubmit={async (text) => {
+            await addCommentMut.mutateAsync({ text });
+          }}
+        />
       }
     >
-      {comments.isPending ? (
-        <div className={styles.loading}>
-          <Spinner /> Loading comments…
-        </div>
-      ) : comments.error ? (
-        <ErrorBox
-          variant="inline"
-          message="Could not load comments."
-          onRetry={() => comments.refetch()}
+      {post ? (
+        <CommentThread
+          bindings={{
+            comments,
+            addComment: (text, parentCommentId) =>
+              addCommentMut.mutateAsync({ text, parentCommentId }),
+            toggleLike: (commentId) => toggleLikeMut.mutateAsync(commentId),
+            useReplies: (commentId, enabled) =>
+              usePostCommentReplies(postId, commentId, enabled),
+            isAddingComment: addCommentMut.isPending,
+          }}
         />
-      ) : (comments.data?.comments?.length ?? 0) === 0 ? (
-        <EmptyState
-          icon={<MessageCircle size={32} aria-hidden />}
-          title="No comments yet"
-          description="Be the first to say something."
-        />
-      ) : (
-        <ul className={styles.commentList}>
-          {comments.data!.comments.map((c) => (
-            <li key={c.id} className={styles.commentItem}>
-              <Avatar
-                src={c.userAvatarUrl}
-                name={c.userName}
-                seed={c.userId}
-                size={32}
-              />
-              <div className={styles.commentBody}>
-                <div className={styles.commentMeta}>
-                  <strong>{c.userId === user?.id ? "You" : c.userName}</strong>
-                  <span>{timeAgo(c.createdAt)}</span>
-                </div>
-                <div className={styles.commentText}>{c.text}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      ) : null}
     </Modal>
   );
 }

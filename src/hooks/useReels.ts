@@ -28,11 +28,13 @@ import type {
   CreateReelResponse,
   DeleteReelResponse,
   Reel,
+  ReelComment,
   ReelCommentsResponse,
   ReelFeedResponse,
   RegisterReelViewResponse,
   ShareReelResponse,
   SingleReelResponse,
+  ToggleCommentLikeResponse,
   ToggleReelLikeResponse,
 } from "../types/api";
 
@@ -43,6 +45,8 @@ export const REEL_KEYS = {
   byUser: (userId: string) => ["reels", "user", userId] as const,
   single: (reelId: string) => ["reels", "single", reelId] as const,
   comments: (reelId: string) => ["reels", reelId, "comments"] as const,
+  replies: (reelId: string, commentId: string) =>
+    ["reels", reelId, "comments", commentId, "replies"] as const,
 };
 
 const DISCOVER_PAGE_SIZE = 10;
@@ -193,6 +197,37 @@ export function useReelComments(reelId: string | null | undefined) {
       ),
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: isAuthenticated && !!reelId,
+  });
+}
+
+/**
+ * Replies under a single top-level reel comment. `enabled` lets the UI
+ * lazily fire the query only when the user expands the thread, so we
+ * don't pre-fetch replies for every comment in the sheet.
+ */
+export function useReelCommentReplies(
+  reelId: string,
+  commentId: string,
+  enabled: boolean
+) {
+  const { isAuthenticated } = useAuth();
+  return useInfiniteQuery<
+    ReelCommentsResponse,
+    Error,
+    InfiniteData<ReelCommentsResponse>,
+    ReturnType<typeof REEL_KEYS.replies>,
+    string | undefined
+  >({
+    queryKey: REEL_KEYS.replies(reelId, commentId),
+    initialPageParam: undefined,
+    queryFn: ({ pageParam, signal }) =>
+      api.get<ReelCommentsResponse>(
+        `/api/reels/${reelId}/comments/${commentId}/replies?limit=${COMMENT_PAGE_SIZE}` +
+          (pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""),
+        { signal }
+      ),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: isAuthenticated && enabled,
   });
 }
 
@@ -480,21 +515,205 @@ export function useToggleReelLike() {
   });
 }
 
+/**
+ * Add a top-level reel comment OR a reply (when `parentCommentId` is set).
+ * Same cache-update shape as `useAddComment` for posts:
+ *   - top-level → prepend to top-level comments cache (page 0)
+ *   - reply     → prepend to parent's replies cache + bump parent.replyCount
+ * Both bump the reel's denormalized `commentCount` across every reel-list
+ * cache so the comment-button label stays in sync.
+ */
 export function useAddReelComment(reelId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (text: string) =>
+    mutationFn: ({
+      text,
+      parentCommentId,
+    }: {
+      text: string;
+      parentCommentId?: string | null;
+    }) =>
       api.post<AddReelCommentResponse>(
         `/api/reels/${reelId}/comments`,
-        { text }
+        parentCommentId ? { text, parentCommentId } : { text }
       ),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: REEL_KEYS.comments(reelId) });
-      // commentCount bumped — let any reel-list query refresh too.
+    onSuccess: ({ comment }) => {
+      const attachedParent = comment.parentCommentId;
+      if (attachedParent) {
+        qc.setQueryData<InfiniteData<ReelCommentsResponse>>(
+          REEL_KEYS.replies(reelId, attachedParent),
+          (data) => {
+            if (!data) return data;
+            const [first, ...rest] = data.pages;
+            const newFirst: ReelCommentsResponse = first
+              ? {
+                  ...first,
+                  comments: [comment, ...first.comments],
+                  count: first.count + 1,
+                }
+              : { comments: [comment], nextCursor: null, count: 1 };
+            return { ...data, pages: [newFirst, ...rest] };
+          }
+        );
+        qc.setQueryData<InfiniteData<ReelCommentsResponse>>(
+          REEL_KEYS.comments(reelId),
+          (data) => {
+            if (!data) return data;
+            return {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                comments: page.comments.map((c) =>
+                  c.id === attachedParent
+                    ? { ...c, replyCount: (c.replyCount || 0) + 1 }
+                    : c
+                ),
+              })),
+            };
+          }
+        );
+      } else {
+        qc.setQueryData<InfiniteData<ReelCommentsResponse>>(
+          REEL_KEYS.comments(reelId),
+          (data) => {
+            if (!data) return data;
+            const [first, ...rest] = data.pages;
+            const newFirst: ReelCommentsResponse = first
+              ? {
+                  ...first,
+                  comments: [comment, ...first.comments],
+                  count: first.count + 1,
+                }
+              : { comments: [comment], nextCursor: null, count: 1 };
+            return { ...data, pages: [newFirst, ...rest] };
+          }
+        );
+      }
       patchReelInCaches(qc, reelId, (r) => ({
         ...r,
         commentCount: r.commentCount + 1,
       }));
+    },
+  });
+}
+
+/**
+ * Toggle a like on a single reel comment (top-level or reply). Optimistic
+ * flip across the top-level cache AND every open replies cache for the
+ * reel — the comment may live in either.
+ */
+export function useToggleReelCommentLike(reelId: string) {
+  const qc = useQueryClient();
+  type Ctx = {
+    snapshots: { key: ReadonlyArray<unknown>; data: unknown }[];
+  };
+
+  const flipComment = (c: ReelComment, commentId: string): ReelComment =>
+    c.id === commentId
+      ? {
+          ...c,
+          likedByUser: !c.likedByUser,
+          likeCount: c.likedByUser
+            ? Math.max(0, c.likeCount - 1)
+            : c.likeCount + 1,
+        }
+      : c;
+
+  return useMutation<ToggleCommentLikeResponse, Error, string, Ctx>({
+    mutationFn: (commentId) =>
+      api.post<ToggleCommentLikeResponse>(
+        `/api/reels/${reelId}/comments/${commentId}/like`
+      ),
+    onMutate: async (commentId) => {
+      await qc.cancelQueries({ queryKey: REEL_KEYS.comments(reelId) });
+      const allRepliesKeys = qc
+        .getQueryCache()
+        .findAll({ queryKey: ["reels", reelId, "comments"] })
+        .map((q) => q.queryKey)
+        .filter(
+          (k) =>
+            Array.isArray(k) && k.length === 5 && k[4] === "replies"
+        );
+
+      const snapshots: { key: ReadonlyArray<unknown>; data: unknown }[] = [];
+      const topKey = REEL_KEYS.comments(reelId);
+      const topPrev = qc.getQueryData(topKey);
+      snapshots.push({ key: topKey, data: topPrev });
+      qc.setQueryData<InfiniteData<ReelCommentsResponse>>(topKey, (data) =>
+        data
+          ? {
+              ...data,
+              pages: data.pages.map((p) => ({
+                ...p,
+                comments: p.comments.map((c) => flipComment(c, commentId)),
+              })),
+            }
+          : data
+      );
+
+      for (const key of allRepliesKeys) {
+        const prev = qc.getQueryData(key);
+        snapshots.push({ key, data: prev });
+        qc.setQueryData<InfiniteData<ReelCommentsResponse>>(key, (data) =>
+          data
+            ? {
+                ...data,
+                pages: data.pages.map((p) => ({
+                  ...p,
+                  comments: p.comments.map((c) => flipComment(c, commentId)),
+                })),
+              }
+            : data
+        );
+      }
+
+      return { snapshots };
+    },
+    onError: (_err, _commentId, ctx) => {
+      if (!ctx) return;
+      for (const { key, data } of ctx.snapshots) {
+        qc.setQueryData(key, data);
+      }
+    },
+    onSuccess: (resp, commentId) => {
+      const reconcile = (c: ReelComment): ReelComment =>
+        c.id === commentId
+          ? { ...c, likedByUser: resp.liked, likeCount: resp.likeCount }
+          : c;
+
+      qc.setQueryData<InfiniteData<ReelCommentsResponse>>(
+        REEL_KEYS.comments(reelId),
+        (data) =>
+          data
+            ? {
+                ...data,
+                pages: data.pages.map((p) => ({
+                  ...p,
+                  comments: p.comments.map(reconcile),
+                })),
+              }
+            : data
+      );
+      const allRepliesKeys = qc
+        .getQueryCache()
+        .findAll({ queryKey: ["reels", reelId, "comments"] })
+        .map((q) => q.queryKey)
+        .filter(
+          (k) => Array.isArray(k) && k.length === 5 && k[4] === "replies"
+        );
+      for (const key of allRepliesKeys) {
+        qc.setQueryData<InfiniteData<ReelCommentsResponse>>(key, (data) =>
+          data
+            ? {
+                ...data,
+                pages: data.pages.map((p) => ({
+                  ...p,
+                  comments: p.comments.map(reconcile),
+                })),
+              }
+            : data
+        );
+      }
     },
   });
 }

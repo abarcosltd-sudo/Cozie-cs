@@ -12,7 +12,6 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  Volume2,
   FastForward,
 } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
@@ -54,7 +53,6 @@ export default function PlayMusic() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.7);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("off");
 
@@ -148,12 +146,13 @@ export default function PlayMusic() {
     },
   });
 
-  // Wire audio element to track changes.
+  // Wire audio element to track changes. Volume is left at the
+  // `HTMLMediaElement` default (1.0) — the OS / browser / hardware
+  // controls are the source of truth so we don't ship an in-app slider.
   useEffect(() => {
     if (!audioRef.current || !track?.fileUrl) return;
     audioRef.current.src = track.fileUrl;
     audioRef.current.load();
-    audioRef.current.volume = volume;
     setCurrentTime(0);
     setDuration(0);
     if (isPlaying) {
@@ -161,10 +160,6 @@ export default function PlayMusic() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackId]);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
 
   const advance = (direction: 1 | -1) => {
     if (queue.length === 0) return;
@@ -412,20 +407,6 @@ export default function PlayMusic() {
               <Repeat size={18} aria-hidden />
             )}
           </Button>
-        </div>
-
-        <div className={styles.volumeRow}>
-          <Volume2 size={18} aria-hidden />
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className={styles.volume}
-            aria-label="Volume"
-          />
         </div>
 
         {upNext.length > 0 ? (

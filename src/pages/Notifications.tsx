@@ -49,6 +49,14 @@ function describe(n: AppNotification): string {
       return n.snapshot?.commentText
         ? `commented on your reel: “${n.snapshot.commentText}”`
         : "commented on your reel";
+    case "comment_like":
+      return n.snapshot?.commentText
+        ? `liked your comment: “${n.snapshot.commentText}”`
+        : "liked your comment";
+    case "comment_reply":
+      return n.snapshot?.replyText
+        ? `replied to your comment: “${n.snapshot.replyText}”`
+        : "replied to your comment";
     default:
       return "interacted with you";
   }
@@ -64,7 +72,10 @@ function iconFor(type: AppNotification["type"]) {
       return <Heart size={14} aria-hidden />;
     case "post_comment":
     case "reel_comment":
+    case "comment_reply":
       return <MessageCircle size={14} aria-hidden />;
+    case "comment_like":
+      return <Heart size={14} aria-hidden />;
     default:
       return <Music size={14} aria-hidden />;
   }

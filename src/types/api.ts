@@ -72,7 +72,33 @@ export interface MusicComment {
   userName: string;
   userAvatarUrl: string | null;
   text: string;
+  /** Null on top-level comments; set to the parent comment's id on replies.
+   *  The tree is flat (one level only) — a "reply to a reply" is silently
+   *  re-parented to the top-level by the backend. */
+  parentCommentId: string | null;
+  likeCount: number;
+  /** Viewer-perspective. False when unauthenticated or on a fresh paint. */
+  likedByUser: boolean;
+  /** Always 0 on reply docs; replies have no sub-replies. */
+  replyCount: number;
   createdAt: string;
+}
+
+export interface MusicCommentsResponse {
+  comments: MusicComment[];
+  nextCursor: string | null;
+  count: number;
+}
+
+export interface AddMusicCommentResponse {
+  commentId: string;
+  comment: MusicComment;
+}
+
+export interface ToggleCommentLikeResponse {
+  liked: boolean;
+  likeCount: number;
+  message?: string;
 }
 
 // ---- Reels ---------------------------------------------------------------
@@ -139,6 +165,15 @@ export interface ReelComment {
   userName: string;
   userAvatarUrl: string | null;
   text: string;
+  /** Null on top-level comments; set to the parent comment's id on replies.
+   *  The backend silently re-parents replies-of-replies up to the top-level
+   *  comment, so the tree is always flat. */
+  parentCommentId: string | null;
+  likeCount: number;
+  /** Viewer-perspective. False when unauthenticated or on a fresh paint. */
+  likedByUser: boolean;
+  /** Always 0 on reply docs; replies have no sub-replies. */
+  replyCount: number;
   createdAt: string;
 }
 
@@ -223,7 +258,9 @@ export type NotificationType =
   | "post_comment"
   | "song_like"
   | "reel_like"
-  | "reel_comment";
+  | "reel_comment"
+  | "comment_like"
+  | "comment_reply";
 
 export interface AppNotification {
   id: string;
@@ -242,6 +279,12 @@ export interface AppNotification {
     postCaption?: string | null;
     /** Reel-specific snapshot field — auto-thumbnail derived by Mux. */
     thumbnailUrl?: string | null;
+    /** Set on `comment_reply` — the comment that was replied to. */
+    parentCommentId?: string | null;
+    /** Set on `comment_reply` — id of the reply doc. */
+    replyId?: string | null;
+    /** Set on `comment_reply` — text of the reply (truncated). */
+    replyText?: string | null;
   };
   read: boolean;
   readAt: string | null;

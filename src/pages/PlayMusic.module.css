@@ -172,20 +172,6 @@
   color: #c084fc;
 }
 
-.volumeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  max-width: 420px;
-  color: var(--color-text-muted);
-}
-
-.volume {
-  flex: 1;
-  accent-color: var(--color-accent);
-}
-
 .queueSection {
   width: 100%;
   margin-top: 16px;
