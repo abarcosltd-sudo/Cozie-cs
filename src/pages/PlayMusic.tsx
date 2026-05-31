@@ -301,12 +301,7 @@ export default function PlayMusic() {
           aria-pressed={likedByUser}
           aria-label={likedByUser ? "Unlike" : "Like"}
         >
-          <Heart
-            size={18}
-            aria-hidden
-            fill={likedByUser ? "currentColor" : "none"}
-          />
-          <span>{likeCount}</span>
+          
         </button>
 
         {!track.fileUrl ? (
