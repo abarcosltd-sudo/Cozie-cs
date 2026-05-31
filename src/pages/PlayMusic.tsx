@@ -91,26 +91,7 @@ export default function PlayMusic() {
   const track = queue[index] || null;
   const trackId = track?.id;
 
-  // Like state for the current track (server-truth via query).
-  const likeQuery = useQuery({
-    queryKey: ["music", "like", trackId],
-    queryFn: () =>
-      api.get<{ liked: boolean; likeCount: number }>(
-        `/api/music/${trackId}/like-status`
-      ),
-    enabled: !!trackId,
-    staleTime: 60_000,
-  });
-  const likeMut = useMutation({
-    mutationFn: () => api.post<{ liked: boolean; likeCount: number }>(
-      `/api/music/${trackId}/like`
-    ),
-    onSuccess: (data) => {
-      qc.setQueryData(["music", "like", trackId], data);
-    },
-  });
-
-  // Favorite state (a separate concept in the backend).
+  // Favorite state (the only like/save mechanism)
   const favQuery = useQuery({
     queryKey: ["music", "favorite", trackId],
     queryFn: () =>
@@ -146,9 +127,7 @@ export default function PlayMusic() {
     },
   });
 
-  // Wire audio element to track changes. Volume is left at the
-  // `HTMLMediaElement` default (1.0) — the OS / browser / hardware
-  // controls are the source of truth so we don't ship an in-app slider.
+  // Wire audio element to track changes.
   useEffect(() => {
     if (!audioRef.current || !track?.fileUrl) return;
     audioRef.current.src = track.fileUrl;
@@ -226,9 +205,6 @@ export default function PlayMusic() {
     );
   }
 
-  const likedByUser = likeQuery.data?.liked ?? false;
-  const likeCount = likeQuery.data?.likeCount ?? 0;
-
   return (
     <PageLayout title="Now Playing" showBack hideBottomNav>
       <audio
@@ -293,21 +269,6 @@ export default function PlayMusic() {
             <span>{formatSeconds(duration)}</span>
           </div>
         </div>
-        
-        <button
-          type="button"
-          className={`${styles.likeBtn} ${likedByUser ? styles.likeOn : ""}`}
-          onClick={() => likeMut.mutate()}
-          aria-pressed={likedByUser}
-          aria-label={likedByUser ? "Unlike" : "Like"}
-        >
-          <Heart
-            size={18}
-            aria-hidden
-            fill={likedByUser ? "currentColor" : "none"}
-          />
-          <span>{likeCount}</span>
-        </button>
 
         {!track.fileUrl ? (
           <ErrorBox
