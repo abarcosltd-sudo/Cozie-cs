@@ -226,7 +226,7 @@ export default function PlayMusic() {
     );
   }
 
- // const likedByUser = likeQuery.data?.liked ?? false;
+  const likedByUser = likeQuery.data?.liked ?? false;
   const likeCount = likeQuery.data?.likeCount ?? 0;
 
   return (
