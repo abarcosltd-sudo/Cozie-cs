@@ -294,20 +294,7 @@ export default function PlayMusic() {
           </div>
         </div>
 
-       // <button
-       //   type="button"
-       //   className={`${styles.likeBtn} ${likedByUser ? styles.likeOn : ""}`}
-       //   onClick={() => likeMut.mutate()}
-       //   aria-pressed={likedByUser}
-       //   aria-label={likedByUser ? "Unlike" : "Like"}
-       // >
-       //   <Heart
-       //     size={18}
-       //     aria-hidden
-       //     fill={likedByUser ? "currentColor" : "none"}
-       //   />
-       //   <span>{likeCount}</span>
-       // </button>
+
 
         {!track.fileUrl ? (
           <ErrorBox
