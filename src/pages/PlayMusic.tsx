@@ -226,7 +226,7 @@ export default function PlayMusic() {
     );
   }
 
-  const likedByUser = likeQuery.data?.liked ?? false;
+ // const likedByUser = likeQuery.data?.liked ?? false;
   const likeCount = likeQuery.data?.likeCount ?? 0;
 
   return (
@@ -294,15 +294,20 @@ export default function PlayMusic() {
           </div>
         </div>
 
-        <button
-          type="button"
-          className={`${styles.likeBtn} ${likedByUser ? styles.likeOn : ""}`}
-          onClick={() => likeMut.mutate()}
-          aria-pressed={likedByUser}
-          aria-label={likedByUser ? "Unlike" : "Like"}
-        >
-          
-        </button>
+       // <button
+       //   type="button"
+       //   className={`${styles.likeBtn} ${likedByUser ? styles.likeOn : ""}`}
+       //   onClick={() => likeMut.mutate()}
+       //   aria-pressed={likedByUser}
+       //   aria-label={likedByUser ? "Unlike" : "Like"}
+       // >
+       //   <Heart
+       //     size={18}
+       //     aria-hidden
+       //     fill={likedByUser ? "currentColor" : "none"}
+       //   />
+       //   <span>{likeCount}</span>
+       // </button>
 
         {!track.fileUrl ? (
           <ErrorBox
