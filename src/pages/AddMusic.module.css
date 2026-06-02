@@ -251,3 +251,125 @@
   background: linear-gradient(90deg, #a855f7 0%, #ec4899 100%);
   transition: width 0.3s ease;
 }
+
+/* Artist-only banner shown above the audio dropzone — sets expectations
+ * about where this upload will land (private bubble vs public). */
+.artistBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: var(--color-text);
+}
+
+.artistBannerTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.artistBannerSubtitle {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 72px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.captionCount {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  margin-top: -4px;
+}
+
+/* Visibility picker — same look as ShareMusic so artists feel the
+ * symmetry between "upload new" and "share existing". */
+.visibilitySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visibilityOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.visibilityOption:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.visibilityOptionActive {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.visibilityRadio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.visibilityRadioActive {
+  background: #a855f7;
+  border-color: #a855f7;
+  color: #ffffff;
+}
+
+.visibilityOptionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.visibilityOptionTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.visibilityOptionSubtitle {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
