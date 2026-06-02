@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -347,6 +347,29 @@ function BubblesTab() {
   const navigate = useNavigate();
   const list = useAvailableArtists();
   const artists = list.data?.pages.flatMap((p) => p.artists) ?? [];
+  const [activeGenre, setActiveGenre] = useState<string>("all");
+
+  // Build the chip row from the genres actually present in the loaded
+  // artists, normalized + de-duplicated. Falls back to nothing when the
+  // first page hasn't arrived yet — chips appear once data exists.
+  const genres = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const a of artists) {
+      for (const g of a.genres) {
+        const key = g.trim().toLowerCase();
+        if (!key) continue;
+        if (!seen.has(key)) seen.set(key, g.trim());
+      }
+    }
+    return Array.from(seen.entries()).map(([key, label]) => ({ key, label }));
+  }, [artists]);
+
+  const filteredArtists = useMemo(() => {
+    if (activeGenre === "all") return artists;
+    return artists.filter((a) =>
+      a.genres.some((g) => g.trim().toLowerCase() === activeGenre)
+    );
+  }, [artists, activeGenre]);
 
   if (list.isPending) {
     return (
@@ -381,30 +404,72 @@ function BubblesTab() {
   }
 
   return (
-    <Section title="Artists with bubbles">
-      <ul className={styles.artistList}>
-        {artists.map((artist) => (
-          <li key={artist.id}>
-            <ArtistRow
-              artist={artist}
-              onOpen={() => navigate(`/bubble/${artist.id}`)}
-            />
-          </li>
-        ))}
-      </ul>
-      {list.hasNextPage ? (
-        <div className={styles.discoverFooter}>
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={list.isFetchingNextPage}
-            onClick={() => list.fetchNextPage()}
+    <>
+      {genres.length > 0 ? (
+        <div
+          className={styles.genreChipScroll}
+          role="tablist"
+          aria-label="Filter by genre"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeGenre === "all"}
+            className={`${styles.genreChip} ${
+              activeGenre === "all" ? styles.genreChipActive : ""
+            }`}
+            onClick={() => setActiveGenre("all")}
           >
-            Load more
-          </Button>
+            All
+          </button>
+          {genres.map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              role="tab"
+              aria-selected={activeGenre === g.key}
+              className={`${styles.genreChip} ${
+                activeGenre === g.key ? styles.genreChipActive : ""
+              }`}
+              onClick={() => setActiveGenre(g.key)}
+            >
+              {g.label}
+            </button>
+          ))}
         </div>
       ) : null}
-    </Section>
+
+      <Section title="Trending bubbles">
+        {filteredArtists.length === 0 ? (
+          <div className={styles.discoverEmpty}>
+            No artists in this genre yet.
+          </div>
+        ) : (
+          <ul className={styles.artistList}>
+            {filteredArtists.map((artist) => (
+              <li key={artist.id}>
+                <ArtistRow
+                  artist={artist}
+                  onOpen={() => navigate(`/bubble/${artist.id}`)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        {list.hasNextPage ? (
+          <div className={styles.discoverFooter}>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={list.isFetchingNextPage}
+              onClick={() => list.fetchNextPage()}
+            >
+              Load more
+            </Button>
+          </div>
+        ) : null}
+      </Section>
+    </>
   );
 }
 
@@ -418,6 +483,13 @@ function ArtistRow({ artist, onOpen }: ArtistRowProps) {
   const leaveMut = useLeaveBubble(artist.id);
   const isMember = artist.bubble?.userIsMember ?? false;
   const isPending = joinMut.isPending || leaveMut.isPending;
+
+  // Single dot-separated meta line per Screen 1:
+  // e.g. "Pop · Country · 15,234 members".
+  const metaSegments: string[] = [
+    ...artist.genres.slice(0, 2),
+    `${(artist.bubble?.memberCount ?? 0).toLocaleString()} members`,
+  ];
 
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -448,13 +520,8 @@ function ArtistRow({ artist, onOpen }: ArtistRowProps) {
             ) : null}
           </span>
           <span className={styles.artistMeta}>
-            {(artist.bubble?.memberCount ?? 0).toLocaleString()} members
+            {metaSegments.join(" · ")}
           </span>
-          {artist.genres.length > 0 ? (
-            <span className={styles.artistGenres}>
-              {artist.genres.slice(0, 3).join(" · ")}
-            </span>
-          ) : null}
         </div>
       </button>
       <div className={styles.artistCtaCol}>

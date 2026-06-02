@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Check,
   CheckCircle2,
   Globe,
   Lock,
@@ -141,34 +142,80 @@ function Hero({
   onUpload,
   onShare,
 }: HeroProps) {
+  // The wireframe shows artist + a member/verified row, plus a genre
+  // pill. We render whichever badges we have data for — never push
+  // empty placeholders.
+  const genreLine = bubble.genres.slice(0, 2).join(" · ");
   return (
     <section className={styles.hero}>
-      <div className={styles.heroRow}>
-        <Avatar name={bubble.artistName} seed={bubble.artistId} size={72} />
-        <div className={styles.heroMeta}>
-          <h1 className={styles.artistName}>
-            {bubble.artistName}
-            <Badge variant="artist" icon={<Sparkles size={10} aria-hidden />}>
-              Artist
-            </Badge>
-          </h1>
-          <p className={styles.handle}>Cozie bubble</p>
+      <div className={styles.avatarWrap}>
+        <span className={styles.avatarRing}>
+          <Avatar
+            src={bubble.photoURL}
+            name={bubble.artistName}
+            seed={bubble.artistId}
+            size={88}
+          />
+        </span>
+        {bubble.isVerified ? (
+          <span
+            className={styles.verifiedDot}
+            aria-label="Verified artist"
+            title="Verified artist"
+          >
+            <Check size={12} aria-hidden />
+          </span>
+        ) : null}
+      </div>
+
+      <h1 className={styles.artistName}>{bubble.artistName}</h1>
+      {bubble.username ? (
+        <p className={styles.handle}>@{bubble.username}</p>
+      ) : null}
+
+      <div className={styles.heroBadges}>
+        {isOwner ? (
+          <Badge variant="artist" icon={<Sparkles size={10} aria-hidden />}>
+            Your bubble
+          </Badge>
+        ) : isMember ? (
+          <Badge variant="bubbleOnly" icon={<Lock size={10} aria-hidden />}>
+            Bubble Member
+          </Badge>
+        ) : null}
+        {bubble.isVerified ? (
+          <Badge variant="verified" icon={<CheckCircle2 size={10} aria-hidden />}>
+            Verified Artist
+          </Badge>
+        ) : null}
+        {genreLine ? <Badge variant="artist">{genreLine}</Badge> : null}
+      </div>
+
+      <div className={styles.statsCard}>
+        <div className={styles.statCell}>
+          <span className={styles.statCellValue}>
+            {bubble.memberCount.toLocaleString()}
+          </span>
+          <span className={styles.statCellLabel}>Members</span>
+        </div>
+        <div className={styles.statCell}>
+          <span className={styles.statCellValue}>
+            {bubble.postCount.toLocaleString()}
+          </span>
+          <span className={styles.statCellLabel}>Bubble Posts</span>
+        </div>
+        <div className={styles.statCell}>
+          <span
+            className={`${styles.statCellValue} ${
+              bubble.isOpen ? styles.statCellOpen : ""
+            }`}
+          >
+            {bubble.isOpen ? "Open" : "Closed"}
+          </span>
+          <span className={styles.statCellLabel}>Entry</span>
         </div>
       </div>
-      <div className={styles.statsRow}>
-        <span>
-          <span className={styles.statValue}>
-            {bubble.memberCount.toLocaleString()}
-          </span>{" "}
-          members
-        </span>
-        <span>
-          <span className={styles.statValue}>
-            {bubble.postCount.toLocaleString()}
-          </span>{" "}
-          posts
-        </span>
-      </div>
+
       <div className={styles.ctaRow}>
         {isOwner ? (
           <>
@@ -196,7 +243,7 @@ function Hero({
             loading={leaving}
             onClick={onLeave}
           >
-            Joined
+            Leave bubble
           </Button>
         ) : (
           <Button
@@ -206,7 +253,7 @@ function Hero({
             onClick={onJoin}
             leftIcon={<Users size={16} aria-hidden />}
           >
-            Join bubble
+            Join Bubble — Free
           </Button>
         )}
       </div>
@@ -250,17 +297,28 @@ interface LockedPreviewProps {
 }
 
 function LockedPreview({ bubble, joining, onJoin }: LockedPreviewProps) {
+  // Mirror the wireframe — the "N unreleased tracks" pitch is more
+  // compelling than a generic "members only" message, but we degrade
+  // gracefully when the bubble has no posts yet.
+  const hasPosts = bubble.postCount > 0;
   return (
     <div className={styles.lockedPreview}>
-      <Lock size={28} aria-hidden style={{ color: "#c084fc" }} />
-      <div className={styles.lockedTitle}>Members-only content</div>
+      <span className={styles.lockedIcon} aria-hidden>
+        🔒
+      </span>
+      <div className={styles.lockedTitle}>Exclusive Bubble Content</div>
       <p className={styles.lockedSubtitle}>
-        Join {bubble.artistName}'s bubble to hear unreleased tracks and exclusive
-        posts before anyone else.
+        {hasPosts
+          ? `Join ${bubble.artistName}'s bubble to hear ${bubble.postCount} unreleased ${
+              bubble.postCount === 1 ? "track" : "tracks"
+            } and exclusive posts before anyone else.`
+          : `Join ${bubble.artistName}'s bubble to be there for the first drop and every post after.`}
       </p>
-      <Button variant="primary" size="md" loading={joining} onClick={onJoin}>
-        Join bubble
-      </Button>
+      <div className={styles.lockedCtaStack}>
+        <Button variant="primary" size="md" loading={joining} onClick={onJoin}>
+          Join Bubble — Free
+        </Button>
+      </div>
     </div>
   );
 }
