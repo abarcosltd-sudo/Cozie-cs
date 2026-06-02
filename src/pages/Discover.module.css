@@ -306,6 +306,48 @@
   border-color: transparent;
 }
 
+/* Wireframe Screen 1 — horizontal genre filter chip row above the
+ * artist list. Chips overflow horizontally on small viewports rather
+ * than wrapping into a tall stack. */
+.genreChipScroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 14px 12px;
+  scrollbar-width: none;
+}
+
+.genreChipScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.genreChip {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.genreChip:hover {
+  color: #ffffff;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.genreChipActive {
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+}
+
 /* Artist directory cards */
 .artistList {
   list-style: none;
@@ -313,14 +355,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .artistCard {
   display: flex;
   gap: 12px;
   padding: 14px;
-  background: var(--color-surface);
+  background: rgba(30, 35, 48, 0.6);
   border: 1px solid var(--color-border);
   border-radius: 14px;
   align-items: center;
@@ -345,7 +387,7 @@
 .artistBody {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -358,18 +400,24 @@
   flex-wrap: wrap;
 }
 
+/* Wireframe meta is a single dot-separated line: "Pop · Country · 15,234 members" */
 .artistMeta {
   font-size: 0.78rem;
   color: var(--color-text-muted);
-}
-
-.artistGenres {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .artistCtaCol {
   flex-shrink: 0;
+}
+
+.discoverEmpty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
 }
 
 .discoverFooter {

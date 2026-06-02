@@ -133,6 +133,11 @@ interface PostCardProps {
 function PostCard({ post, onLike, onComment, onPlay }: PostCardProps) {
   const isBubbleOnly = post.bubbleInfo?.isBubbleOnly ?? false;
   const canShare = post.bubbleInfo?.canShareExternally ?? true;
+  // Show the green "Released" badge per Screen 5 — but only when the
+  // post was *actually* released from a bubble. Natively-public posts
+  // (regular users, or artists who chose Public on first share) have a
+  // null releasedAt and don't need the call-out.
+  const isReleasedFromBubble = Boolean(post.releasedAt) && !isBubbleOnly;
   return (
     <article
       className={`${styles.card} ${isBubbleOnly ? styles.cardBubbleOnly : ""}`}
@@ -152,6 +157,8 @@ function PostCard({ post, onLike, onComment, onPlay }: PostCardProps) {
                 <Badge variant="bubbleOnly" icon={<Lock size={10} aria-hidden />}>
                   Bubble Only
                 </Badge>
+              ) : isReleasedFromBubble ? (
+                <Badge variant="released">Released</Badge>
               ) : null}
             </div>
             <div className={styles.postTime}>{timeAgo(post.createdAt)}</div>

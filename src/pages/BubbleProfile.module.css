@@ -5,28 +5,50 @@
   padding-bottom: 32px;
 }
 
+/* Wireframe Screens 3 & 4 — centered hero with avatar, verified
+ * overlay, genre pills, and a 3-cell stats card. */
 .hero {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 24px 18px;
+  gap: 16px;
+  padding: 24px 18px 20px;
   background: linear-gradient(
     135deg,
     rgba(168, 85, 247, 0.18) 0%,
     rgba(236, 72, 153, 0.18) 100%
   );
   border-bottom: 1px solid var(--color-border);
-}
-
-.heroRow {
-  display: flex;
+  text-align: center;
   align-items: center;
-  gap: 14px;
 }
 
-.heroMeta {
-  flex: 1;
-  min-width: 0;
+/* Centered avatar with overlap container so the verified tick can sit
+ * on the bottom-right corner like in the wireframe. */
+.avatarWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.avatarRing {
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  display: inline-block;
+}
+
+.verifiedDot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2px solid #1a1d29;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .artistName {
@@ -34,9 +56,10 @@
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  justify-content: center;
   flex-wrap: wrap;
 }
 
@@ -46,22 +69,69 @@
   font-size: 0.85rem;
 }
 
-.statsRow {
+.heroBadges {
   display: flex;
-  gap: 18px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2px;
 }
 
-.statValue {
+/* 3-cell stats card with vertical dividers, matching wireframe. */
+.statsCard {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: rgba(15, 17, 23, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px 4px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.statCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  min-width: 0;
+}
+
+.statCell + .statCell {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.statCellValue {
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-text);
+  line-height: 1.1;
+}
+
+.statCellLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.statCellOpen {
+  color: #4ade80;
 }
 
 .ctaRow {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+}
+
+.ctaRow > * {
+  flex: 1 1 140px;
 }
 
 .banner {
@@ -208,17 +278,25 @@
   gap: 8px;
 }
 
+/* Wireframe Screen 3 — locked preview uses a rose dashed border and
+ * a soft pink wash so it reads as "members-only content waiting for
+ * you" rather than an error/forbidden state. */
 .lockedPreview {
   margin: 0 18px;
   padding: 28px 20px;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px dashed rgba(168, 85, 247, 0.3);
+  background: rgba(236, 72, 153, 0.08);
+  border: 1px dashed rgba(236, 72, 153, 0.35);
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.lockedIcon {
+  font-size: 28px;
+  line-height: 1;
 }
 
 .lockedTitle {
@@ -229,6 +307,16 @@
 .lockedSubtitle {
   font-size: 0.85rem;
   color: var(--color-text-muted);
-  max-width: 32ch;
+  max-width: 36ch;
   line-height: 1.45;
+  margin: 0;
+}
+
+.lockedCtaStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 6px;
 }

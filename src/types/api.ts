@@ -377,6 +377,16 @@ export interface Bubble {
   id: string;
   artistId: string;
   artistName: string;
+  /** Owning artist's @username, null if not set. */
+  username: string | null;
+  /** Owning artist's profile photo, null if not set. */
+  photoURL: string | null;
+  /** Owning artist's verification status. */
+  isVerified: boolean;
+  /** Owning artist's genres (max 5 in current backend). */
+  genres: string[];
+  /** Owning artist's short bio, null if not set. */
+  bio: string | null;
   isOpen: boolean;
   memberCount: number;
   postCount: number;
