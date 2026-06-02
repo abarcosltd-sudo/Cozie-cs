@@ -20,10 +20,13 @@ import { ErrorBox } from "../components/ui/ErrorBox";
 import { EmptyState } from "../components/ui/EmptyState";
 import { useTrending, useCharts } from "../hooks/useProfile";
 import { useExploreFeed } from "../hooks/useFeed";
+import { useAuth } from "../contexts/AuthContext";
+import { Sparkles } from "lucide-react";
 import {
   useAvailableArtists,
   useJoinBubble,
   useLeaveBubble,
+  useMyBubble,
 } from "../hooks/useBubbles";
 import type { AvailableArtist, MusicPost, MusicTrack } from "../types/api";
 import { ApiError } from "../lib/api";
@@ -345,6 +348,12 @@ function DiscoverMusic({
 
 function BubblesTab() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isArtist = user?.userType === "artist";
+  // Pull the artist's own bubble so we can offer a sticky shortcut at
+  // the top. The hook is no-op for listeners (enabled=false in the
+  // hook implementation), so no spurious 403s on non-artist accounts.
+  const myBubble = useMyBubble();
   const list = useAvailableArtists();
   const artists = list.data?.pages.flatMap((p) => p.artists) ?? [];
   const [activeGenre, setActiveGenre] = useState<string>("all");
@@ -371,40 +380,87 @@ function BubblesTab() {
     );
   }, [artists, activeGenre]);
 
+  // Loading / error short-circuit. We still render the "Your bubble"
+  // shortcut above the loader so artists can reach their own bubble
+  // even while the rest of the list is still pending.
+  const myBubbleCard = isArtist && myBubble.data?.bubble ? (
+    <button
+      type="button"
+      className={styles.myBubbleCard}
+      onClick={() => navigate(`/bubble/${myBubble.data!.bubble.id}`)}
+      aria-label="Go to your bubble"
+    >
+      <Avatar
+        src={myBubble.data.bubble.photoURL}
+        name={myBubble.data.bubble.artistName}
+        seed={myBubble.data.bubble.artistId}
+        size={52}
+      />
+      <div className={styles.myBubbleBody}>
+        <span className={styles.myBubbleTitle}>
+          Your bubble
+          <Badge variant="artist" icon={<Sparkles size={10} aria-hidden />}>
+            You
+          </Badge>
+        </span>
+        <span className={styles.myBubbleMeta}>
+          {myBubble.data.bubble.memberCount.toLocaleString()} members ·{" "}
+          {myBubble.data.bubble.postCount.toLocaleString()} posts
+        </span>
+      </div>
+      <ChevronRight size={20} aria-hidden className={styles.myBubbleArrow} />
+    </button>
+  ) : null;
+
   if (list.isPending) {
     return (
-      <div className={styles.section}>
-        <SectionLoading />
-      </div>
+      <>
+        {myBubbleCard}
+        <div className={styles.section}>
+          <SectionLoading />
+        </div>
+      </>
     );
   }
   if (list.error) {
     return (
-      <div className={styles.section}>
-        <ErrorBox
-          variant="inline"
-          message={
-            list.error instanceof ApiError ? list.error.message : "Failed to load"
-          }
-          onRetry={() => list.refetch()}
-        />
-      </div>
+      <>
+        {myBubbleCard}
+        <div className={styles.section}>
+          <ErrorBox
+            variant="inline"
+            message={
+              list.error instanceof ApiError ? list.error.message : "Failed to load"
+            }
+            onRetry={() => list.refetch()}
+          />
+        </div>
+      </>
     );
   }
   if (artists.length === 0) {
     return (
-      <div className={styles.section}>
-        <EmptyState
-          icon={<Users size={32} aria-hidden />}
-          title="No artists yet"
-          description="When verified artists join Cozie, they'll show up here."
-        />
-      </div>
+      <>
+        {myBubbleCard}
+        <div className={styles.section}>
+          <EmptyState
+            icon={<Users size={32} aria-hidden />}
+            title={isArtist ? "You're the only artist so far" : "No artists yet"}
+            description={
+              isArtist
+                ? "When other artists join Cozie, you'll discover their bubbles here."
+                : "When artists join Cozie, they'll show up here."
+            }
+          />
+        </div>
+      </>
     );
   }
 
   return (
     <>
+      {myBubbleCard}
+
       {genres.length > 0 ? (
         <div
           className={styles.genreChipScroll}

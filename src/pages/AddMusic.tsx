@@ -266,6 +266,11 @@ export default function AddMusic() {
           ...form,
           fileUrl: audioUrlInfo.publicUrl,
           albumArtUrl,
+          // Catalog-level visibility. Hides the song from public
+          // discovery surfaces (Trending / Top Charts / search) until
+          // the artist releases the bubble post. Listeners always
+          // upload as "public".
+          visibility: isArtist ? visibility : "public",
         }
       );
       setProgress(isArtist ? 85 : 100);
