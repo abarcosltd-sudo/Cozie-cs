@@ -1,10 +1,15 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Music } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { ErrorBox } from "../components/ui/ErrorBox";
 import { api, ApiError } from "../lib/api";
-import type { AuthSignupResponse } from "../types/api";
+import type { AuthSignupResponse, UserType } from "../types/api";
 import authStyles from "./_authShared.module.css";
 import styles from "./signup.module.css";
 
@@ -14,6 +19,12 @@ interface FormState {
   email: string;
   password: string;
   confirmPassword: string;
+  userType: UserType;
+  artistName: string;
+  genres: string[];
+  label: string;
+  website: string;
+  bio: string;
 }
 
 const INITIAL_FORM: FormState = {
@@ -22,7 +33,30 @@ const INITIAL_FORM: FormState = {
   email: "",
   password: "",
   confirmPassword: "",
+  userType: "user",
+  artistName: "",
+  genres: [],
+  label: "",
+  website: "",
+  bio: "",
 };
+
+const GENRE_OPTIONS = [
+  "Pop",
+  "Hip-Hop",
+  "R&B",
+  "Electronic",
+  "Rock",
+  "Indie",
+  "Country",
+  "Jazz",
+  "Classical",
+  "Lofi",
+  "Latin",
+  "K-Pop",
+];
+
+const MAX_GENRES = 5;
 
 function passwordStrength(password: string): {
   score: 0 | 1 | 2 | 3;
@@ -48,10 +82,46 @@ export default function Signup() {
   const strength = useMemo(() => passwordStrength(form.password), [form.password]);
   const confirmMismatch =
     form.confirmPassword.length > 0 && form.password !== form.confirmPassword;
+  const isArtist = form.userType === "artist";
 
   const onField =
-    (field: keyof FormState) => (e: ChangeEvent<HTMLInputElement>) =>
+    (field: keyof FormState) =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const setUserType = (userType: UserType) => {
+    setForm((prev) => {
+      if (prev.userType === userType) return prev;
+      return userType === "artist"
+        ? {
+            ...prev,
+            userType,
+            // Default artistName to fullname so artists who use the same
+            // stage name don't have to re-type it.
+            artistName: prev.artistName || prev.fullname,
+          }
+        : {
+            ...prev,
+            userType,
+            // Clear artist-only fields when switching back to listener
+            // so a stray value can't leak into the request body.
+            artistName: "",
+            genres: [],
+            label: "",
+            website: "",
+            bio: "",
+          };
+    });
+  };
+
+  const toggleGenre = (genre: string) => {
+    setForm((prev) => {
+      const has = prev.genres.includes(genre);
+      if (has) return { ...prev, genres: prev.genres.filter((g) => g !== genre) };
+      if (prev.genres.length >= MAX_GENRES) return prev;
+      return { ...prev, genres: [...prev.genres, genre] };
+    });
+  };
 
   function validate(): string | null {
     if (form.fullname.trim().length < 2)
@@ -66,6 +136,18 @@ export default function Signup() {
       return "Password must be at least 8 characters long";
     if (form.password !== form.confirmPassword)
       return "Passwords do not match";
+
+    if (isArtist) {
+      if (form.artistName.trim().length < 2)
+        return "Artist name must be at least 2 characters long";
+      if (form.genres.length === 0)
+        return "Pick at least one genre for your bubble";
+      if (
+        form.website.trim() &&
+        !/^https?:\/\//i.test(form.website.trim())
+      )
+        return "Website must start with http:// or https://";
+    }
     return null;
   }
 
@@ -79,14 +161,32 @@ export default function Signup() {
     setError(null);
     setLoading(true);
     try {
+      const baseBody = {
+        fullname: form.fullname.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        userType: form.userType,
+      };
+      const body = isArtist
+        ? {
+            ...baseBody,
+            artistProfile: {
+              artistName: form.artistName.trim(),
+              genres: form.genres,
+              // Only send the optional fields if the user filled them in
+              // — omit-vs-null lets the backend Zod schema treat them as
+              // truly optional.
+              ...(form.label.trim() ? { label: form.label.trim() } : {}),
+              ...(form.website.trim() ? { website: form.website.trim() } : {}),
+              ...(form.bio.trim() ? { bio: form.bio.trim() } : {}),
+            },
+          }
+        : baseBody;
+
       const res = await api.post<AuthSignupResponse>(
         "/api/users/signup",
-        {
-          fullname: form.fullname.trim(),
-          username: form.username.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        },
+        body,
         { skipAuth: true }
       );
       navigate("/verification", {
@@ -113,6 +213,45 @@ export default function Signup() {
         {error ? <ErrorBox message={error} variant="inline" /> : null}
 
         <form className={authStyles.form} onSubmit={handleSubmit} noValidate>
+          <div className={authStyles.field}>
+            <span className={authStyles.label}>I want to join Cozie as a…</span>
+            <div className={styles.roleSegment} role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isArtist}
+                onClick={() => setUserType("user")}
+                disabled={loading}
+                className={`${styles.roleOption} ${
+                  !isArtist ? styles.roleOptionActive : ""
+                }`}
+              >
+                <span>Listener</span>
+                <span className={styles.roleSubtitle}>
+                  Discover & share music
+                </span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isArtist}
+                onClick={() => setUserType("artist")}
+                disabled={loading}
+                className={`${styles.roleOption} ${
+                  isArtist ? styles.roleOptionActive : ""
+                }`}
+              >
+                <span>Artist</span>
+                <span className={styles.roleSubtitle}>
+                  Release & build a bubble
+                </span>
+              </button>
+            </div>
+            <p className={styles.roleNote}>
+              This choice is permanent — you can't switch later.
+            </p>
+          </div>
+
           <div className={authStyles.field}>
             <label htmlFor="signup-fullname" className={authStyles.label}>
               Full name
@@ -214,8 +353,124 @@ export default function Signup() {
             ) : null}
           </div>
 
+          {isArtist ? (
+            <section
+              className={styles.artistSection}
+              aria-labelledby="signup-artist-section-title"
+            >
+              <header className={styles.artistSectionHeader}>
+                <span
+                  id="signup-artist-section-title"
+                  className={styles.artistSectionTitle}
+                >
+                  Artist profile
+                </span>
+                <span className={styles.artistSectionSubtitle}>
+                  We'll create your bubble using these details.
+                </span>
+              </header>
+
+              <div className={authStyles.field}>
+                <label htmlFor="signup-artistname" className={authStyles.label}>
+                  Artist name
+                </label>
+                <input
+                  id="signup-artistname"
+                  type="text"
+                  className={authStyles.input}
+                  value={form.artistName}
+                  onChange={onField("artistName")}
+                  required
+                  minLength={2}
+                  maxLength={60}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className={authStyles.field}>
+                <span className={authStyles.label}>
+                  Genres ({form.genres.length}/{MAX_GENRES})
+                </span>
+                <div className={styles.genreGrid}>
+                  {GENRE_OPTIONS.map((genre) => {
+                    const active = form.genres.includes(genre);
+                    const disabled =
+                      loading ||
+                      (!active && form.genres.length >= MAX_GENRES);
+                    return (
+                      <button
+                        type="button"
+                        key={genre}
+                        onClick={() => toggleGenre(genre)}
+                        disabled={disabled}
+                        aria-pressed={active}
+                        className={`${styles.genreChip} ${
+                          active ? styles.genreChipActive : ""
+                        }`}
+                      >
+                        {genre}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className={styles.genreHelper}>
+                  Pick 1–{MAX_GENRES} genres that best describe your sound.
+                </span>
+              </div>
+
+              <div className={authStyles.field}>
+                <label htmlFor="signup-label" className={authStyles.label}>
+                  Label <span className={styles.genreHelper}>(optional)</span>
+                </label>
+                <input
+                  id="signup-label"
+                  type="text"
+                  className={authStyles.input}
+                  value={form.label}
+                  onChange={onField("label")}
+                  maxLength={60}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className={authStyles.field}>
+                <label htmlFor="signup-website" className={authStyles.label}>
+                  Website <span className={styles.genreHelper}>(optional)</span>
+                </label>
+                <input
+                  id="signup-website"
+                  type="url"
+                  className={authStyles.input}
+                  placeholder="https://"
+                  value={form.website}
+                  onChange={onField("website")}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className={authStyles.field}>
+                <label htmlFor="signup-bio" className={authStyles.label}>
+                  Bio <span className={styles.genreHelper}>(optional)</span>
+                </label>
+                <textarea
+                  id="signup-bio"
+                  className={`${authStyles.input} ${styles.textareaLike}`}
+                  value={form.bio}
+                  onChange={onField("bio")}
+                  maxLength={500}
+                  rows={3}
+                  disabled={loading}
+                />
+              </div>
+            </section>
+          ) : null}
+
           <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
-            {loading ? "Creating account…" : "Create account"}
+            {loading
+              ? "Creating account…"
+              : isArtist
+                ? "Create artist account"
+                : "Create account"}
           </Button>
         </form>
 

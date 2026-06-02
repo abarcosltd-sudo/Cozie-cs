@@ -29,3 +29,126 @@
   font-size: 0.8rem;
   color: #fca5a5;
 }
+
+/* Role picker (Listener / Artist) */
+.roleSegment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.roleOption {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.roleOption:hover {
+  color: #ffffff;
+}
+
+.roleOptionActive {
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(168, 85, 247, 0.35);
+}
+
+.roleSubtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+.roleOptionActive .roleSubtitle {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.roleNote {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 2px 0 6px;
+  line-height: 1.4;
+}
+
+.artistSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  border-radius: 14px;
+}
+
+.artistSectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.artistSectionTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.artistSectionSubtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.genreGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.genreChip {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.genreChip:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #ffffff;
+}
+
+.genreChipActive {
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.genreHelper {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.textareaLike {
+  min-height: 70px;
+  resize: vertical;
+  font-family: inherit;
+}
