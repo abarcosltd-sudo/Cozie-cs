@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Music, Share2, MoreHorizontal } from "lucide-react";
+import {
+  Heart,
+  Lock,
+  MessageCircle,
+  Music,
+  Share2,
+  MoreHorizontal,
+} from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
+import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ErrorBox } from "../components/ui/ErrorBox";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -123,8 +131,12 @@ interface PostCardProps {
 }
 
 function PostCard({ post, onLike, onComment, onPlay }: PostCardProps) {
+  const isBubbleOnly = post.bubbleInfo?.isBubbleOnly ?? false;
+  const canShare = post.bubbleInfo?.canShareExternally ?? true;
   return (
-    <article className={styles.card}>
+    <article
+      className={`${styles.card} ${isBubbleOnly ? styles.cardBubbleOnly : ""}`}
+    >
       <header className={styles.cardHeader}>
         <div className={styles.user}>
           <Avatar
@@ -134,13 +146,22 @@ function PostCard({ post, onLike, onComment, onPlay }: PostCardProps) {
             size={40}
           />
           <div>
-            <div className={styles.userName}>{post.userName}</div>
+            <div className={styles.userNameRow}>
+              <span className={styles.userName}>{post.userName}</span>
+              {isBubbleOnly ? (
+                <Badge variant="bubbleOnly" icon={<Lock size={10} aria-hidden />}>
+                  Bubble Only
+                </Badge>
+              ) : null}
+            </div>
             <div className={styles.postTime}>{timeAgo(post.createdAt)}</div>
           </div>
         </div>
-        <Button variant="ghost" size="sm" aria-label="More options">
-          <MoreHorizontal size={18} aria-hidden />
-        </Button>
+        <div className={styles.cardHeaderRight}>
+          <Button variant="ghost" size="sm" aria-label="More options">
+            <MoreHorizontal size={18} aria-hidden />
+          </Button>
+        </div>
       </header>
 
       <button
@@ -196,13 +217,25 @@ function PostCard({ post, onLike, onComment, onPlay }: PostCardProps) {
           <MessageCircle size={20} aria-hidden />
           <span>{post.comments}</span>
         </button>
-        <button
-          type="button"
-          className={styles.actionBtn}
-          aria-label="Share post"
-        >
-          <Share2 size={20} aria-hidden />
-        </button>
+        {canShare ? (
+          <button
+            type="button"
+            className={styles.actionBtn}
+            aria-label="Share post"
+          >
+            <Share2 size={20} aria-hidden />
+          </button>
+        ) : (
+          <span
+            className={styles.shareLocked}
+            role="status"
+            aria-label="Sharing locked until artist releases this track"
+            title="The artist has not released this track yet."
+          >
+            <Lock size={16} aria-hidden />
+            Share locked
+          </span>
+        )}
       </div>
     </article>
   );

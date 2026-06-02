@@ -35,12 +35,54 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
+  gap: 8px;
+}
+
+.cardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .user {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.userNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Bubble-only post emphasis — a subtle pink border + glow so the
+ * unreleased card reads at a glance without screaming. Matches the
+ * wireframe's `border: 1px solid rgba(236,72,153,0.25)` treatment. */
+.cardBubbleOnly {
+  border-color: rgba(236, 72, 153, 0.32);
+  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.08) inset;
+}
+
+/* Disabled "share locked" replacement for the share button. We
+ * intentionally keep the slot occupied so users understand WHY they
+ * can't share, instead of silently hiding the affordance. */
+.shareLocked {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: not-allowed;
 }
 
 .userName {

@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Music, Search, X } from "lucide-react";
+import { Check, Globe, Lock, Music, Search, X } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { ErrorBox } from "../components/ui/ErrorBox";
 import { Spinner } from "../components/ui/Spinner";
+import { useAuth } from "../contexts/AuthContext";
 import { api, ApiError } from "../lib/api";
-import type { MusicTrack } from "../types/api";
+import type { MusicTrack, PostVisibility } from "../types/api";
 import styles from "./ShareMusic.module.css";
 
 interface SearchResponse {
@@ -20,6 +21,8 @@ const CAPTION_MAX = 300;
 export default function ShareMusic() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const isArtist = user?.userType === "artist";
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selected, setSelected] = useState<SearchResponse["songs"][number] | null>(
@@ -27,6 +30,12 @@ export default function ShareMusic() {
   );
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Artists default to a Bubble post — that's their core value prop in
+  // this flow. Listeners can't see this picker; their posts are always
+  // public and the visibility field is omitted from the request.
+  const [visibility, setVisibility] = useState<PostVisibility>(
+    isArtist ? "bubble" : "public"
+  );
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(query.trim()), 400);
@@ -44,14 +53,26 @@ export default function ShareMusic() {
   });
 
   const shareMut = useMutation({
-    mutationFn: () =>
-      api.post<{ postId: string }>("/api/posts/share-music", {
+    mutationFn: () => {
+      const body: {
+        songId: string;
+        caption: string;
+        visibility?: PostVisibility;
+      } = {
         songId: selected!.id,
         caption: caption.trim(),
-      }),
+      };
+      if (isArtist) body.visibility = visibility;
+      return api.post<{ postId: string }>("/api/posts/share-music", body);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["feed"] });
-      navigate("/home-feed");
+      qc.invalidateQueries({ queryKey: ["bubble"] });
+      if (isArtist && visibility === "bubble" && user) {
+        navigate(`/bubble/${user.id}`);
+      } else {
+        navigate("/home-feed");
+      }
     },
     onError: (err) => {
       setError(err instanceof ApiError ? err.message : "Failed to share");
@@ -197,7 +218,73 @@ export default function ShareMusic() {
         <div className={styles.captionCount}>
           {caption.length} / {CAPTION_MAX}
         </div>
+
+        {isArtist ? (
+          <section
+            className={styles.visibilitySection}
+            aria-label="Post visibility"
+          >
+            <span className={styles.visibilityLabel}>Visibility</span>
+            <VisibilityOption
+              active={visibility === "bubble"}
+              onSelect={() => setVisibility("bubble")}
+              icon={<Lock size={14} aria-hidden />}
+              title="Bubble Only"
+              subtitle="Visible to bubble members only. Sharing disabled until you release it."
+            />
+            <VisibilityOption
+              active={visibility === "public"}
+              onSelect={() => setVisibility("public")}
+              icon={<Globe size={14} aria-hidden />}
+              title="Public (Released)"
+              subtitle="Visible to all followers. Sharing enabled immediately."
+            />
+          </section>
+        ) : null}
       </div>
     </PageLayout>
+  );
+}
+
+interface VisibilityOptionProps {
+  active: boolean;
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}
+
+function VisibilityOption({
+  active,
+  onSelect,
+  icon,
+  title,
+  subtitle,
+}: VisibilityOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={`${styles.visibilityOption} ${
+        active ? styles.visibilityOptionActive : ""
+      }`}
+    >
+      <span
+        className={`${styles.visibilityRadio} ${
+          active ? styles.visibilityRadioActive : ""
+        }`}
+        aria-hidden
+      >
+        {active ? <Check size={12} aria-hidden /> : null}
+      </span>
+      <span className={styles.visibilityOptionBody}>
+        <span className={styles.visibilityOptionTitle}>
+          {icon}
+          {title}
+        </span>
+        <span className={styles.visibilityOptionSubtitle}>{subtitle}</span>
+      </span>
+    </button>
   );
 }

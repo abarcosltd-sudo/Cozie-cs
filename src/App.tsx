@@ -14,6 +14,7 @@ import HomeFeed from "./pages/HomeFeed";
 import Discover from "./pages/Discover";
 import UserProfile from "./pages/UserProfile";
 import ShareMusic from "./pages/ShareMusic";
+import BubbleProfile from "./pages/BubbleProfile";
 import AddMusic from "./pages/AddMusic";
 import PlayMusic from "./pages/PlayMusic";
 import Messages from "./pages/Messages";
@@ -161,6 +162,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ShareMusic />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bubble/:artistId"
+        element={
+          <ProtectedRoute>
+            <BubbleProfile />
           </ProtectedRoute>
         }
       />

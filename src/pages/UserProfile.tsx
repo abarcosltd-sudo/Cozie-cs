@@ -8,6 +8,7 @@ import {
   Music,
   Play,
   Settings,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
@@ -145,6 +146,15 @@ export default function UserProfile() {
               >
                 Edit profile
               </Button>
+              {profile.userType === "artist" ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate(`/bubble/${profile.id}`)}
+                  leftIcon={<Sparkles size={14} aria-hidden />}
+                >
+                  My bubble
+                </Button>
+              ) : null}
               <Button
                 variant="ghost"
                 onClick={() => logout()}
@@ -154,7 +164,18 @@ export default function UserProfile() {
               </Button>
             </>
           ) : (
-            <FollowButton userId={profile.id} />
+            <>
+              <FollowButton userId={profile.id} />
+              {profile.userType === "artist" ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate(`/bubble/${profile.id}`)}
+                  leftIcon={<Sparkles size={14} aria-hidden />}
+                >
+                  View bubble
+                </Button>
+              ) : null}
+            </>
           )}
         </div>
       </header>

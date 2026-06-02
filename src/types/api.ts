@@ -8,6 +8,25 @@
  *     to match what the API actually returns.
  */
 
+/**
+ * Account role. Chosen at signup and immutable after that — there is
+ * no upgrade endpoint in MVP. Drives the bubble surfaces (artist gets
+ * a bubble + the visibility picker on ShareMusic; listeners don't).
+ */
+export type UserType = "user" | "artist";
+
+export interface ArtistProfile {
+  artistName: string;
+  genres: string[];
+  label: string | null;
+  website: string | null;
+  bio: string | null;
+  isVerified: boolean;
+  verificationStatus: "none" | "pending" | "approved";
+  /** Always equals the user's id (1:1 invariant). */
+  bubbleId: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -20,6 +39,10 @@ export interface User {
   followingCount: number;
   visibility: "public" | "private";
   unreadNotificationCount: number;
+  /** Role chosen at signup. Default "user" on legacy docs missing the field. */
+  userType: UserType;
+  /** Present iff `userType === "artist"`. */
+  artistProfile?: ArtistProfile | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -31,6 +54,8 @@ export interface PublicProfile {
   displayName: string | null;
   photoURL: string | null;
   visibility: "public" | "private";
+  userType?: UserType;
+  artistProfile?: ArtistProfile | null;
 }
 
 export interface MusicTrack {
@@ -45,6 +70,22 @@ export interface MusicTrack {
   likeCount?: number;
   favoriteCount?: number;
   liked?: boolean;
+}
+
+export type PostVisibility = "public" | "bubble";
+
+/**
+ * Bubble metadata stamped onto every feed/post DTO so the UI can branch
+ * on `isBubbleOnly` / `canShareExternally` without computing it locally.
+ * Returned by the backend even for non-bubble posts (with safe defaults
+ * — public posts get `isBubbleOnly: false`, `canShareExternally: true`).
+ */
+export interface PostBubbleInfo {
+  isBubbleOnly: boolean;
+  canShareExternally: boolean;
+  bubbleId: string | null;
+  isReleased: boolean;
+  visibility: PostVisibility;
 }
 
 export interface MusicPost {
@@ -64,6 +105,10 @@ export interface MusicPost {
   likes: number;
   comments: number;
   likedByUser: boolean;
+  visibility: PostVisibility;
+  isReleased: boolean;
+  releasedAt: string | null;
+  bubbleInfo: PostBubbleInfo;
 }
 
 export interface MusicComment {
@@ -324,4 +369,77 @@ export interface AuthSignupResponse {
 export interface AuthVerifyOtpResponse {
   token: string;
   user: User;
+}
+
+// ---- Artist Bubbles ------------------------------------------------------
+
+export interface Bubble {
+  id: string;
+  artistId: string;
+  artistName: string;
+  isOpen: boolean;
+  memberCount: number;
+  postCount: number;
+  createdAt: string | null;
+}
+
+export interface BubbleMembership {
+  isMember: boolean;
+  isOwner: boolean;
+  joinedAt: string | null;
+}
+
+export interface GetBubbleResponse {
+  bubble: Bubble;
+  userMembership: BubbleMembership;
+  viewerUserType: UserType;
+}
+
+export interface MyBubbleResponse {
+  bubble: Bubble;
+}
+
+export interface BubblePostsResponse {
+  posts: MusicPost[];
+  nextCursor: string | null;
+  count: number;
+}
+
+export interface JoinBubbleResponse {
+  status: "approved" | "already_member" | "pending";
+  memberCount: number;
+}
+
+export interface LeaveBubbleResponse {
+  status: "left" | "not_member";
+  memberCount: number;
+}
+
+export interface ReleaseBubblePostResponse {
+  postId: string;
+  visibility: PostVisibility;
+  isReleased: true;
+  releasedAt: string;
+}
+
+export interface AvailableArtist {
+  id: string;
+  artistName: string;
+  displayName: string;
+  username: string;
+  photoURL: string | null;
+  isVerified: boolean;
+  genres: string[];
+  bubble: {
+    id: string;
+    memberCount: number;
+    isOpen: boolean;
+    userIsMember: boolean;
+  } | null;
+}
+
+export interface AvailableArtistsResponse {
+  artists: AvailableArtist[];
+  nextCursor: string | null;
+  count: number;
 }

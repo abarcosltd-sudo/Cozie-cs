@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -8,21 +9,32 @@ import {
   Music,
   Play,
   Search,
+  Users,
 } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Avatar } from "../components/ui/Avatar";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
 import { Spinner } from "../components/ui/Spinner";
 import { ErrorBox } from "../components/ui/ErrorBox";
 import { EmptyState } from "../components/ui/EmptyState";
 import { useTrending, useCharts } from "../hooks/useProfile";
 import { useExploreFeed } from "../hooks/useFeed";
-import type { MusicPost, MusicTrack } from "../types/api";
+import {
+  useAvailableArtists,
+  useJoinBubble,
+  useLeaveBubble,
+} from "../hooks/useBubbles";
+import type { AvailableArtist, MusicPost, MusicTrack } from "../types/api";
 import { ApiError } from "../lib/api";
 import styles from "./Discover.module.css";
+
+type DiscoverTab = "music" | "bubbles";
 
 export default function Discover() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [tab, setTab] = useState<DiscoverTab>("music");
 
   const trending = useTrending();
   const charts = useCharts();
@@ -65,6 +77,62 @@ export default function Discover() {
         />
       </div>
 
+      <div className={styles.tabBar} role="tablist" aria-label="Discover sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "music"}
+          onClick={() => setTab("music")}
+          className={`${styles.tab} ${tab === "music" ? styles.tabActive : ""}`}
+        >
+          Music
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "bubbles"}
+          onClick={() => setTab("bubbles")}
+          className={`${styles.tab} ${tab === "bubbles" ? styles.tabActive : ""}`}
+        >
+          Bubbles
+        </button>
+      </div>
+
+      {tab === "bubbles" ? <BubblesTab /> : null}
+
+      {tab === "music" ? (
+        <DiscoverMusic
+          navigate={navigate}
+          trending={trending}
+          charts={charts}
+          explore={explore}
+          handlePlay={handlePlay}
+          trendingScroller={trendingScroller}
+        />
+      ) : null}
+    </PageLayout>
+  );
+}
+
+interface DiscoverMusicProps {
+  navigate: ReturnType<typeof useNavigate>;
+  trending: ReturnType<typeof useTrending>;
+  charts: ReturnType<typeof useCharts>;
+  explore: ReturnType<typeof useExploreFeed>;
+  handlePlay: (song: MusicTrack, queue: MusicTrack[]) => void;
+  trendingScroller: (dir: "left" | "right") => void;
+}
+
+function DiscoverMusic({
+  navigate,
+  trending,
+  charts,
+  explore,
+  handlePlay,
+  trendingScroller,
+}: DiscoverMusicProps) {
+  return (
+    <>
       <Section title="Trending now">
         {trending.isPending ? (
           <SectionLoading />
@@ -271,7 +339,135 @@ export default function Discover() {
           </ol>
         )}
       </Section>
-    </PageLayout>
+    </>
+  );
+}
+
+function BubblesTab() {
+  const navigate = useNavigate();
+  const list = useAvailableArtists();
+  const artists = list.data?.pages.flatMap((p) => p.artists) ?? [];
+
+  if (list.isPending) {
+    return (
+      <div className={styles.section}>
+        <SectionLoading />
+      </div>
+    );
+  }
+  if (list.error) {
+    return (
+      <div className={styles.section}>
+        <ErrorBox
+          variant="inline"
+          message={
+            list.error instanceof ApiError ? list.error.message : "Failed to load"
+          }
+          onRetry={() => list.refetch()}
+        />
+      </div>
+    );
+  }
+  if (artists.length === 0) {
+    return (
+      <div className={styles.section}>
+        <EmptyState
+          icon={<Users size={32} aria-hidden />}
+          title="No artists yet"
+          description="When verified artists join Cozie, they'll show up here."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Section title="Artists with bubbles">
+      <ul className={styles.artistList}>
+        {artists.map((artist) => (
+          <li key={artist.id}>
+            <ArtistRow
+              artist={artist}
+              onOpen={() => navigate(`/bubble/${artist.id}`)}
+            />
+          </li>
+        ))}
+      </ul>
+      {list.hasNextPage ? (
+        <div className={styles.discoverFooter}>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={list.isFetchingNextPage}
+            onClick={() => list.fetchNextPage()}
+          >
+            Load more
+          </Button>
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+interface ArtistRowProps {
+  artist: AvailableArtist;
+  onOpen: () => void;
+}
+
+function ArtistRow({ artist, onOpen }: ArtistRowProps) {
+  const joinMut = useJoinBubble(artist.id);
+  const leaveMut = useLeaveBubble(artist.id);
+  const isMember = artist.bubble?.userIsMember ?? false;
+  const isPending = joinMut.isPending || leaveMut.isPending;
+
+  const handleAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPending) return;
+    if (isMember) leaveMut.mutate();
+    else joinMut.mutate();
+  };
+
+  return (
+    <div className={styles.artistCard}>
+      <button type="button" className={styles.artistMain} onClick={onOpen}>
+        <Avatar
+          src={artist.photoURL}
+          name={artist.artistName}
+          seed={artist.id}
+          size={52}
+        />
+        <div className={styles.artistBody}>
+          <span className={styles.artistName}>
+            {artist.artistName}
+            {artist.isVerified ? (
+              <Badge
+                variant="verified"
+                icon={<CheckCircle2 size={10} aria-hidden />}
+              >
+                Verified
+              </Badge>
+            ) : null}
+          </span>
+          <span className={styles.artistMeta}>
+            {(artist.bubble?.memberCount ?? 0).toLocaleString()} members
+          </span>
+          {artist.genres.length > 0 ? (
+            <span className={styles.artistGenres}>
+              {artist.genres.slice(0, 3).join(" · ")}
+            </span>
+          ) : null}
+        </div>
+      </button>
+      <div className={styles.artistCtaCol}>
+        <Button
+          variant={isMember ? "secondary" : "primary"}
+          size="sm"
+          loading={isPending}
+          onClick={handleAction}
+        >
+          {isMember ? "Joined" : "Join"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
