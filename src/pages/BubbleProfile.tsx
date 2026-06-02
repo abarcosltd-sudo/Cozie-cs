@@ -6,6 +6,7 @@ import {
   Lock,
   Music,
   Sparkles,
+  Upload,
   Users,
 } from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
@@ -87,6 +88,7 @@ export default function BubbleProfile() {
             leaving={leaveMut.isPending}
             onJoin={() => joinMut.mutate()}
             onLeave={() => leaveMut.mutate()}
+            onUpload={() => navigate("/add-music")}
             onShare={() => navigate("/share-music")}
           />
 
@@ -124,6 +126,7 @@ interface HeroProps {
   leaving: boolean;
   onJoin: () => void;
   onLeave: () => void;
+  onUpload: () => void;
   onShare: () => void;
 }
 
@@ -135,6 +138,7 @@ function Hero({
   leaving,
   onJoin,
   onLeave,
+  onUpload,
   onShare,
 }: HeroProps) {
   return (
@@ -167,14 +171,24 @@ function Hero({
       </div>
       <div className={styles.ctaRow}>
         {isOwner ? (
-          <Button
-            variant="primary"
-            size="md"
-            onClick={onShare}
-            leftIcon={<Music size={16} aria-hidden />}
-          >
-            Share to bubble
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onUpload}
+              leftIcon={<Upload size={16} aria-hidden />}
+            >
+              Upload track
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={onShare}
+              leftIcon={<Music size={16} aria-hidden />}
+            >
+              Share existing
+            </Button>
+          </>
         ) : isMember ? (
           <Button
             variant="secondary"
@@ -207,8 +221,8 @@ function OwnerBanner() {
       <div>
         <div className={styles.bannerTitle}>Your bubble</div>
         <div className={styles.bannerSubtitle}>
-          Drop a song here first and your members get an early listen. When
-          you're ready, hit Release to push it public.
+          Upload a new track and your members get an early listen. When you're
+          ready, hit Release to push it public.
         </div>
       </div>
     </div>

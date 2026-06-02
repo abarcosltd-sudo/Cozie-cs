@@ -6,11 +6,22 @@ import {
   type DragEvent,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, ImagePlus, Music, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Check,
+  CheckCircle,
+  Globe,
+  ImagePlus,
+  Lock,
+  Music,
+  X,
+} from "lucide-react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Button } from "../components/ui/Button";
 import { ErrorBox } from "../components/ui/ErrorBox";
+import { useAuth } from "../contexts/AuthContext";
 import { api, ApiError } from "../lib/api";
+import type { PostVisibility } from "../types/api";
 import styles from "./AddMusic.module.css";
 
 const VALID_AUDIO = /\.(mp3|wav|flac)$/i;
@@ -36,6 +47,12 @@ interface UploadUrl {
   signedUrl: string;
   publicUrl: string;
 }
+
+interface AddMusicResponse {
+  musicId: string;
+}
+
+const CAPTION_MAX = 300;
 
 interface AddMusicForm {
   title: string;
@@ -103,18 +120,34 @@ function formatBytes(b: number): string {
 
 export default function AddMusic() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const isArtist = user?.userType === "artist";
   const audioInputRef = useRef<HTMLInputElement>(null);
   const artInputRef = useRef<HTMLInputElement>(null);
 
   const [audio, setAudio] = useState<File | null>(null);
   const [art, setArt] = useState<File | null>(null);
   const [artPreview, setArtPreview] = useState<string | null>(null);
-  const [form, setForm] = useState<AddMusicForm>(INITIAL_FORM);
+  // For artists, prefill the artist field with their stage name so the
+  // catalog row matches their bubble identity. Listeners still type the
+  // performer's name themselves.
+  const [form, setForm] = useState<AddMusicForm>(() => {
+    if (isArtist && user?.artistProfile?.artistName) {
+      return { ...INITIAL_FORM, artist: user.artistProfile.artistName };
+    }
+    return INITIAL_FORM;
+  });
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // Artist-only: caption + visibility for the auto-created bubble/feed
+  // post. Defaults to "bubble" because the entry point on the bubble
+  // page and the create sheet is framed as "Upload to your bubble".
+  const [caption, setCaption] = useState("");
+  const [visibility, setVisibility] = useState<PostVisibility>("bubble");
 
   useEffect(() => {
     return () => {
@@ -180,6 +213,21 @@ export default function AddMusic() {
     return null;
   };
 
+  /**
+   * Upload flow:
+   *   1. Get a signed URL + PUT the audio to cloud storage
+   *   2. (Optional) same for album art
+   *   3. POST /api/music/add-music to catalog the track
+   *   4. For artists: POST /api/posts/share-music with the new songId so
+   *      the track also appears as a bubble (or public) post — the user
+   *      shouldn't have to remember a second step. The visibility picker
+   *      controls whether it lands as a private bubble drop or a public
+   *      release.
+   *
+   * If step 4 fails we keep the catalog row (don't roll back the upload)
+   * and surface the error so the artist can retry the share manually from
+   * /share-music.
+   */
   const onSubmit = async () => {
     const v = validate();
     if (v) {
@@ -199,7 +247,7 @@ export default function AddMusic() {
         }
       );
       await api.putExternal(audioUrlInfo.signedUrl, audio!, audio!.type);
-      setProgress(50);
+      setProgress(40);
 
       let albumArtUrl: string | null = null;
       if (art) {
@@ -210,16 +258,51 @@ export default function AddMusic() {
         await api.putExternal(artUrlInfo.signedUrl, art, art.type);
         albumArtUrl = artUrlInfo.publicUrl;
       }
-      setProgress(80);
+      setProgress(70);
 
-      await api.post("/api/music/add-music", {
-        ...form,
-        fileUrl: audioUrlInfo.publicUrl,
-        albumArtUrl,
-      });
-      setProgress(100);
+      const addResp = await api.post<AddMusicResponse>(
+        "/api/music/add-music",
+        {
+          ...form,
+          fileUrl: audioUrlInfo.publicUrl,
+          albumArtUrl,
+        }
+      );
+      setProgress(isArtist ? 85 : 100);
+
+      if (isArtist && user) {
+        try {
+          await api.post("/api/posts/share-music", {
+            songId: addResp.musicId,
+            caption: caption.trim(),
+            visibility,
+          });
+        } catch (postErr) {
+          setUploading(false);
+          setError(
+            postErr instanceof ApiError
+              ? `Track uploaded, but posting to your bubble failed: ${postErr.message}. You can share it manually from Share music.`
+              : "Track uploaded, but posting to your bubble failed. You can share it manually from Share music."
+          );
+          return;
+        }
+        setProgress(100);
+        // Both feed and bubble caches need to refetch so the new post is
+        // visible without a hard reload.
+        qc.invalidateQueries({ queryKey: ["feed"] });
+        qc.invalidateQueries({ queryKey: ["bubble"] });
+      }
+
       setSuccess(true);
-      setTimeout(() => navigate("/home-feed"), 1500);
+      setTimeout(() => {
+        if (isArtist && user) {
+          navigate(
+            visibility === "bubble" ? `/bubble/${user.id}` : "/home-feed"
+          );
+        } else {
+          navigate("/home-feed");
+        }
+      }, 1500);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Upload failed");
     } finally {
@@ -238,9 +321,31 @@ export default function AddMusic() {
     navigate(-1);
   };
 
+  const headerCta =
+    isArtist && audio
+      ? visibility === "bubble"
+        ? "Upload to bubble"
+        : "Upload & release"
+      : "Upload";
+
+  const successCopy = isArtist
+    ? visibility === "bubble"
+      ? {
+          title: "Posted to your bubble",
+          body: "Your track is live for bubble members. Release it publicly anytime from the post.",
+        }
+      : {
+          title: "Released to followers",
+          body: "Your track is live on Cozie for everyone.",
+        }
+    : {
+        title: "Music uploaded",
+        body: "Your track is now live on Cozie.",
+      };
+
   return (
     <PageLayout
-      title="Add music"
+      title={isArtist ? "Upload track" : "Add music"}
       onBack={goBack}
       showBack
       headerRight={
@@ -251,7 +356,7 @@ export default function AddMusic() {
           loading={uploading}
           disabled={!audio}
         >
-          Upload
+          {headerCta}
         </Button>
       }
       hideBottomNav
@@ -260,11 +365,31 @@ export default function AddMusic() {
         {success ? (
           <div className={styles.success} role="status" aria-live="polite">
             <CheckCircle size={28} aria-hidden />
-            <strong>Music uploaded</strong>
-            <span>Your track is now live on Cozie.</span>
+            <strong>{successCopy.title}</strong>
+            <span>{successCopy.body}</span>
           </div>
         ) : null}
         {error ? <ErrorBox variant="inline" message={error} /> : null}
+
+        {isArtist ? (
+          <div className={styles.artistBanner} role="note">
+            <span className={styles.artistBannerTitle}>
+              {visibility === "bubble" ? (
+                <Lock size={14} aria-hidden />
+              ) : (
+                <Globe size={14} aria-hidden />
+              )}
+              {visibility === "bubble"
+                ? "Uploading to your bubble"
+                : "Uploading as a public release"}
+            </span>
+            <span className={styles.artistBannerSubtitle}>
+              {visibility === "bubble"
+                ? "Only your bubble members will see this track. Sharing is locked until you release it."
+                : "Visible to all followers. Sharing is enabled immediately."}
+            </span>
+          </div>
+        ) : null}
 
         {!audio ? (
           <div
@@ -513,6 +638,49 @@ export default function AddMusic() {
                 <span>I confirm I own this work or have full rights.</span>
               </label>
             </Section>
+
+            {isArtist ? (
+              <Section title="Post to bubble">
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="add-music-caption">
+                    Caption (optional)
+                  </label>
+                  <textarea
+                    id="add-music-caption"
+                    className={styles.textarea}
+                    value={caption}
+                    onChange={(e) =>
+                      setCaption(e.target.value.slice(0, CAPTION_MAX))
+                    }
+                    placeholder="Say something about this track…"
+                    rows={3}
+                  />
+                  <div className={styles.captionCount}>
+                    {caption.length} / {CAPTION_MAX}
+                  </div>
+                </div>
+
+                <section
+                  className={styles.visibilitySection}
+                  aria-label="Post visibility"
+                >
+                  <VisibilityOption
+                    active={visibility === "bubble"}
+                    onSelect={() => setVisibility("bubble")}
+                    icon={<Lock size={14} aria-hidden />}
+                    title="Bubble Only"
+                    subtitle="Visible to bubble members only. Sharing disabled until you release it."
+                  />
+                  <VisibilityOption
+                    active={visibility === "public"}
+                    onSelect={() => setVisibility("public")}
+                    icon={<Globe size={14} aria-hidden />}
+                    title="Public (Released)"
+                    subtitle="Visible to all followers. Sharing enabled immediately."
+                  />
+                </section>
+              </Section>
+            ) : null}
           </>
         ) : null}
 
@@ -617,5 +785,48 @@ function SelectField({ label, value, onChange, options, required }: SelectFieldP
         ))}
       </select>
     </div>
+  );
+}
+
+interface VisibilityOptionProps {
+  active: boolean;
+  onSelect: () => void;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}
+
+function VisibilityOption({
+  active,
+  onSelect,
+  icon,
+  title,
+  subtitle,
+}: VisibilityOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={`${styles.visibilityOption} ${
+        active ? styles.visibilityOptionActive : ""
+      }`}
+    >
+      <span
+        className={`${styles.visibilityRadio} ${
+          active ? styles.visibilityRadioActive : ""
+        }`}
+        aria-hidden
+      >
+        {active ? <Check size={12} aria-hidden /> : null}
+      </span>
+      <span className={styles.visibilityOptionBody}>
+        <span className={styles.visibilityOptionTitle}>
+          {icon}
+          {title}
+        </span>
+        <span className={styles.visibilityOptionSubtitle}>{subtitle}</span>
+      </span>
+    </button>
   );
 }
