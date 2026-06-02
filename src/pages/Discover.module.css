@@ -420,6 +420,60 @@
   font-size: 0.88rem;
 }
 
+/* "Your bubble" shortcut shown on top of the Bubbles tab for artists.
+ * Same row geometry as a regular artist card but tinted to read as
+ * "this one is yours". */
+.myBubbleCard {
+  margin: 16px 14px 0;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.18) 0%,
+    rgba(236, 72, 153, 0.18) 100%
+  );
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 14px;
+  align-items: center;
+  width: calc(100% - 28px);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.myBubbleCard:hover,
+.myBubbleCard:focus-visible {
+  border-color: rgba(168, 85, 247, 0.6);
+  outline: none;
+}
+
+.myBubbleBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.myBubbleTitle {
+  font-weight: 600;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.myBubbleMeta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.myBubbleArrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
 .discoverFooter {
   display: flex;
   justify-content: center;
