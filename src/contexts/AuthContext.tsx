@@ -28,8 +28,18 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  /** Persist a token returned by login/verify-otp and load /me. */
-  login: (token: string, hintUser?: User | null) => Promise<void>;
+  /**
+   * Persist a token returned by login/verify-otp/google-auth and load /me.
+   * The hint user is whatever subset of `User` the calling endpoint
+   * returns (login/verify-otp/google-auth each return a slightly
+   * different projection). `loadMe()` runs immediately after and is the
+   * source of truth — the hint is purely to avoid a flash of unloaded
+   * state on first paint.
+   */
+  login: (
+    token: string,
+    hintUser?: Partial<User> | null
+  ) => Promise<void>;
   /** Clear local auth state. Optionally redirect (defaults to /login). */
   logout: (opts?: { redirect?: string | false }) => void;
   /** Force a /me refetch (e.g. after editing the profile). */
@@ -99,7 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (nextToken, hintUser) => {
       setAuthToken(nextToken);
       setToken(nextToken);
-      if (hintUser) setUser(hintUser);
+      // Hint may be a partial (Google/login return different subsets).
+      // `loadMe()` immediately re-fetches `/me` so this is just a hand-off
+      // to suppress a flash of "loading" between login and the /me reply.
+      if (hintUser) setUser(hintUser as User);
       await loadMe();
     },
     [loadMe]
