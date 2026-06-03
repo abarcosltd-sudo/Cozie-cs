@@ -1,5 +1,8 @@
 import {
+  useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -8,7 +11,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { Music } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { ErrorBox } from "../components/ui/ErrorBox";
+import { useAuth } from "../contexts/AuthContext";
 import { api, ApiError } from "../lib/api";
+import { signupWithGoogle } from "../lib/auth";
+import {
+  attachGoogleSignIn,
+  isGoogleSignInConfigured,
+} from "../lib/oauth/google";
 import type { AuthSignupResponse, UserType } from "../types/api";
 import authStyles from "./_authShared.module.css";
 import styles from "./signup.module.css";
@@ -73,11 +82,59 @@ function passwordStrength(password: string): {
   return { score: 3, label: "Strong password" };
 }
 
+// --- Pure validators ------------------------------------------------------
+// Defined outside the component so they are stable references, which keeps
+// the Google `useEffect` dependency array clean (the GIS callback closure
+// shouldn't churn on every keystroke).
+
+function validateArtistFields(state: FormState): string | null {
+  if (state.userType !== "artist") return null;
+  if (state.artistName.trim().length < 2)
+    return "Artist name must be at least 2 characters long";
+  if (state.genres.length === 0)
+    return "Pick at least one genre for your bubble";
+  if (state.website.trim() && !/^https?:\/\//i.test(state.website.trim()))
+    return "Website must start with http:// or https://";
+  return null;
+}
+
+function validateUsername(state: FormState): string | null {
+  if (state.username.trim().length < 3)
+    return "Username must be at least 3 characters long";
+  if (!/^[a-zA-Z0-9_]+$/.test(state.username))
+    return "Username can only contain letters, numbers, and underscores";
+  return null;
+}
+
+/**
+ * Validation for the Google sign-up button. Skips fullname / email /
+ * password (Google supplies those); still requires username and the
+ * artist fields when the role toggle is set to artist.
+ */
+function validateForGoogle(state: FormState): string | null {
+  const usernameError = validateUsername(state);
+  if (usernameError) return usernameError;
+  return validateArtistFields(state);
+}
+
 export default function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleSlotRef = useRef<HTMLDivElement | null>(null);
+  // GIS calls its callback with whatever closure was in place when the
+  // button was rendered. We mirror the form into a ref so the callback
+  // always reads the *latest* values (role, artist fields, username)
+  // without re-rendering the Google button on every keystroke.
+  const formRef = useRef(form);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  const googleEnabled = isGoogleSignInConfigured();
 
   const strength = useMemo(() => passwordStrength(form.password), [form.password]);
   const confirmMismatch =
@@ -126,29 +183,15 @@ export default function Signup() {
   function validate(): string | null {
     if (form.fullname.trim().length < 2)
       return "Full name must be at least 2 characters long";
-    if (form.username.trim().length < 3)
-      return "Username must be at least 3 characters long";
-    if (!/^[a-zA-Z0-9_]+$/.test(form.username))
-      return "Username can only contain letters, numbers, and underscores";
+    const usernameError = validateUsername(form);
+    if (usernameError) return usernameError;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       return "Please enter a valid email address";
     if (form.password.length < 8)
       return "Password must be at least 8 characters long";
     if (form.password !== form.confirmPassword)
       return "Passwords do not match";
-
-    if (isArtist) {
-      if (form.artistName.trim().length < 2)
-        return "Artist name must be at least 2 characters long";
-      if (form.genres.length === 0)
-        return "Pick at least one genre for your bubble";
-      if (
-        form.website.trim() &&
-        !/^https?:\/\//i.test(form.website.trim())
-      )
-        return "Website must start with http:// or https://";
-    }
-    return null;
+    return validateArtistFields(form);
   }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -199,6 +242,106 @@ export default function Signup() {
     }
   };
 
+  /**
+   * Fire after GIS gives us an ID token. Validates the bits of the form
+   * we still need from the user (username + artist fields), POSTs to
+   * `/api/users/google/signup` with the current role + artist data, and
+   * lands them straight on `/preference` because Google has already
+   * verified the email — no OTP step.
+   *
+   * If the user clicked the Google button while the form was invalid,
+   * we discard the ID token and surface an inline error. They can fix
+   * the form and click Google again to get a fresh token.
+   */
+  const handleGoogleToken = useCallback(
+    async (idToken: string) => {
+      const snapshot = formRef.current;
+      const validation = validateForGoogle(snapshot);
+      if (validation) {
+        setError(validation);
+        return;
+      }
+      setError(null);
+      setGoogleLoading(true);
+      try {
+        const artistIsArtist = snapshot.userType === "artist";
+        const res = await signupWithGoogle({
+          idToken,
+          username: snapshot.username.trim(),
+          userType: snapshot.userType,
+          ...(artistIsArtist
+            ? {
+                artistProfile: {
+                  artistName: snapshot.artistName.trim(),
+                  genres: snapshot.genres,
+                  ...(snapshot.label.trim()
+                    ? { label: snapshot.label.trim() }
+                    : {}),
+                  ...(snapshot.website.trim()
+                    ? { website: snapshot.website.trim() }
+                    : {}),
+                  ...(snapshot.bio.trim() ? { bio: snapshot.bio.trim() } : {}),
+                },
+              }
+            : {}),
+        });
+        await login(res.token, res.user);
+        // Skip /verification — Google's email_verified claim is our
+        // proof of ownership and the backend already set isVerified:true.
+        navigate("/preference", { replace: true });
+      } catch (err) {
+        if (err instanceof ApiError && err.code === "USERNAME_TAKEN") {
+          setError(
+            "That username is already taken. Pick a different one and try again."
+          );
+        } else {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Google sign-up failed. Please try again."
+          );
+        }
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    [login, navigate]
+  );
+
+  useEffect(() => {
+    if (!googleEnabled) return;
+    const slot = googleSlotRef.current;
+    if (!slot) return;
+    let cancelled = false;
+    let teardown: (() => void) | undefined;
+
+    attachGoogleSignIn(slot, {
+      onIdToken: (idToken) => {
+        if (!cancelled) void handleGoogleToken(idToken);
+      },
+      onError: (err) => {
+        if (!cancelled) {
+          console.warn("Google sign-up unavailable:", err.message);
+        }
+      },
+      text: "signup_with",
+    })
+      .then((cleanup) => {
+        if (cancelled) cleanup();
+        else teardown = cleanup;
+      })
+      .catch(() => {
+        /* already logged in onError */
+      });
+
+    return () => {
+      cancelled = true;
+      teardown?.();
+    };
+  }, [googleEnabled, handleGoogleToken]);
+
+  const formDisabled = loading || googleLoading;
+
   return (
     <div className={authStyles.page}>
       <div className={authStyles.container}>
@@ -221,7 +364,7 @@ export default function Signup() {
                 role="tab"
                 aria-selected={!isArtist}
                 onClick={() => setUserType("user")}
-                disabled={loading}
+                disabled={formDisabled}
                 className={`${styles.roleOption} ${
                   !isArtist ? styles.roleOptionActive : ""
                 }`}
@@ -236,7 +379,7 @@ export default function Signup() {
                 role="tab"
                 aria-selected={isArtist}
                 onClick={() => setUserType("artist")}
-                disabled={loading}
+                disabled={formDisabled}
                 className={`${styles.roleOption} ${
                   isArtist ? styles.roleOptionActive : ""
                 }`}
@@ -265,7 +408,7 @@ export default function Signup() {
               required
               minLength={2}
               autoComplete="name"
-              disabled={loading}
+              disabled={formDisabled}
             />
           </div>
 
@@ -283,7 +426,7 @@ export default function Signup() {
               minLength={3}
               pattern="[a-zA-Z0-9_]+"
               autoComplete="username"
-              disabled={loading}
+              disabled={formDisabled}
             />
           </div>
 
@@ -299,7 +442,7 @@ export default function Signup() {
               onChange={onField("email")}
               required
               autoComplete="email"
-              disabled={loading}
+              disabled={formDisabled}
             />
           </div>
 
@@ -316,7 +459,7 @@ export default function Signup() {
               required
               minLength={8}
               autoComplete="new-password"
-              disabled={loading}
+              disabled={formDisabled}
               aria-describedby="signup-password-strength"
             />
             <div
@@ -342,7 +485,7 @@ export default function Signup() {
               onChange={onField("confirmPassword")}
               required
               autoComplete="new-password"
-              disabled={loading}
+              disabled={formDisabled}
               aria-invalid={confirmMismatch || undefined}
               aria-describedby={confirmMismatch ? "signup-confirm-help" : undefined}
             />
@@ -383,7 +526,7 @@ export default function Signup() {
                   required
                   minLength={2}
                   maxLength={60}
-                  disabled={loading}
+                  disabled={formDisabled}
                 />
               </div>
 
@@ -395,7 +538,7 @@ export default function Signup() {
                   {GENRE_OPTIONS.map((genre) => {
                     const active = form.genres.includes(genre);
                     const disabled =
-                      loading ||
+                      formDisabled ||
                       (!active && form.genres.length >= MAX_GENRES);
                     return (
                       <button
@@ -429,7 +572,7 @@ export default function Signup() {
                   value={form.label}
                   onChange={onField("label")}
                   maxLength={60}
-                  disabled={loading}
+                  disabled={formDisabled}
                 />
               </div>
 
@@ -444,7 +587,7 @@ export default function Signup() {
                   placeholder="https://"
                   value={form.website}
                   onChange={onField("website")}
-                  disabled={loading}
+                  disabled={formDisabled}
                 />
               </div>
 
@@ -459,13 +602,20 @@ export default function Signup() {
                   onChange={onField("bio")}
                   maxLength={500}
                   rows={3}
-                  disabled={loading}
+                  disabled={formDisabled}
                 />
               </div>
             </section>
           ) : null}
 
-          <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={loading}
+            disabled={formDisabled}
+          >
             {loading
               ? "Creating account…"
               : isArtist
@@ -473,6 +623,27 @@ export default function Signup() {
                 : "Create account"}
           </Button>
         </form>
+
+        {googleEnabled ? (
+          <>
+            <div className={authStyles.oauthDivider} role="separator">
+              or
+            </div>
+            <div
+              ref={googleSlotRef}
+              className={authStyles.oauthSlot}
+              aria-busy={googleLoading || undefined}
+              aria-label={
+                isArtist ? "Sign up as artist with Google" : "Sign up with Google"
+              }
+            />
+            <p className={authStyles.oauthHint}>
+              {isArtist
+                ? "Fill in your username and artist details first, then click the Google button to finish."
+                : "Pick a username, then click the Google button to skip the verification step."}
+            </p>
+          </>
+        ) : null}
 
         <div className={authStyles.footer}>
           Already have an account? <Link to="/login">Sign in</Link>

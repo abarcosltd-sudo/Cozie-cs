@@ -132,3 +132,48 @@
 .terms a {
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* OAuth separator + button container -------------------------------------- */
+/* The Google button is rendered by GIS into `.oauthSlot`, which keeps a
+   stable min-height so the form doesn't reflow while the GIS script
+   loads. The divider visually splits the password form from the OAuth
+   options. */
+
+.oauthDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.oauthDivider::before,
+.oauthDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.oauthSlot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.oauthHint {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.oauthHint a {
+  color: #c084fc;
+  font-weight: 600;
+}
